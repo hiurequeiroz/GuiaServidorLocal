@@ -1,12 +1,9 @@
-version: '3.8'
-
 services:
   # Serviço Web - Interface do Chatbot
   chatbot:
     build: .
     container_name: ia-local-web
-    ports:
-      - "8080:8080"
+    network_mode: host
     environment:
       - OLLAMA_HOST=${OLLAMA_HOST}
       - MODEL_NAME=llama2

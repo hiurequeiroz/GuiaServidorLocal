@@ -58,9 +58,13 @@ else
     echo "   Continuando deploy da aplicação web..."
 fi
 
-# Parar containers existentes
+# Parar containers existentes e limpar órfãos
 echo "🛑 Parando containers existentes..."
-docker-compose down 2>/dev/null || true
+docker-compose down --remove-orphans 2>/dev/null || true
+
+# Limpar containers órfãos
+echo "🧹 Limpando containers órfãos..."
+docker container prune -f 2>/dev/null || true
 
 # Rebuild da imagem para produção
 echo "🔨 Rebuild da imagem Docker para produção..."
