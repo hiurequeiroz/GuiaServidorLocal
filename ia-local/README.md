@@ -146,7 +146,11 @@ NVIDIA_VISIBLE_DEVICES=all
 
 ## 🐛 Solução de Problemas
 
-### Docker não funciona
+Para problemas específicos e soluções detalhadas, consulte o **[Guia de Troubleshooting](TROUBLESHOOTING.md)**.
+
+### Problemas Comuns Rápidos:
+
+#### Docker não funciona
 ```bash
 # Verificar status
 sudo systemctl status docker
@@ -158,7 +162,7 @@ sudo systemctl restart docker
 groups $USER
 ```
 
-### GPU não detectada
+#### GPU não detectada
 ```bash
 # Verificar drivers
 nvidia-smi
@@ -167,13 +171,33 @@ nvidia-smi
 docker run --rm --gpus all nvidia/cuda:11.0-base nvidia-smi
 ```
 
-### Porta ocupada
+#### Porta ocupada
 ```bash
 # Verificar porta
 sudo netstat -tlnp | grep :8080
 
 # Mudar porta no .env
 PORT=8081
+```
+
+#### Erro de comunicação com IA
+```bash
+# Baixar modelo (pode demorar 10-15 minutos)
+docker exec -it ia-local-ollama ollama pull llama2
+```
+
+### 📋 Checklist de Verificação
+
+Após a instalação, verifique se tudo está funcionando:
+
+```bash
+echo "=== VERIFICAÇÃO COMPLETA ==="
+echo "Docker: $(docker --version)"
+echo "Docker Compose: $(docker-compose --version)"
+echo "GPU: $(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null || echo 'CPU apenas')"
+echo "Usuário no grupo docker: $(groups $USER | grep docker && echo 'SIM' || echo 'NÃO')"
+echo "Ollama API: $(curl -s http://localhost:11434/api/tags | grep -o '"models":\[.*\]' || echo 'NÃO RESPONDE')"
+echo "Containers ativos: $(docker ps --format 'table {{.Names}}\t{{.Status}}')"
 ```
 
 ## 🤝 Compartilhamento na Rede
