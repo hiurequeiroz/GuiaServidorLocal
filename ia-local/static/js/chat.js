@@ -78,20 +78,22 @@ class ChatbotUI {
         // Drag and drop
         this.uploadZone.addEventListener('dragover', (e) => {
             e.preventDefault();
-            this.uploadZone.style.borderColor = '#667eea';
+            this.uploadZone.classList.add('dragover');
         });
 
         this.uploadZone.addEventListener('dragleave', (e) => {
             e.preventDefault();
-            this.uploadZone.style.borderColor = '#dee2e6';
+            this.uploadZone.classList.remove('dragover');
         });
 
         this.uploadZone.addEventListener('drop', (e) => {
             e.preventDefault();
-            this.uploadZone.style.borderColor = '#dee2e6';
+            this.uploadZone.classList.remove('dragover');
             const files = e.dataTransfer.files;
             if (files.length > 0 && files[0].type === 'application/pdf') {
                 this.uploadPDFFile(files[0]);
+            } else {
+                this.addMessage('❌ Por favor, selecione apenas arquivos PDF.', 'system');
             }
         });
 
@@ -163,31 +165,43 @@ class ChatbotUI {
                 <div class="pdf-empty">
                     <i class="fas fa-file-pdf"></i>
                     <p>Nenhum PDF carregado</p>
-                    <p>Faça upload de um PDF para começar</p>
+                    <small>Faça upload de um PDF para adicionar contexto ao chat</small>
                 </div>
             `;
             return;
         }
 
-        this.pdfList.innerHTML = this.pdfs.map(pdf => `
-            <div class="pdf-item ${pdf.hash === this.activePdfHash ? 'active' : ''}" data-hash="${pdf.hash}">
-                <div class="pdf-item-header">
-                    <div>
-                        <div class="pdf-item-title">${pdf.name}</div>
-                        <div class="pdf-item-meta">
-                            <span><i class="fas fa-file"></i> ${this.formatFileSize(pdf.size)}</span>
-                            <span><i class="fas fa-copy"></i> ${pdf.pages} páginas</span>
-                            <span><i class="fas fa-text-width"></i> ${this.formatTextLength(pdf.text_length)}</span>
+        this.pdfList.innerHTML = this.pdfs.map(pdf => {
+            const methodIcon = pdf.extraction_method === 'ocr' ? 'fas fa-eye' : 'fas fa-file-text';
+            const methodText = pdf.extraction_method === 'ocr' ? 'OCR' : 'Texto';
+            const methodClass = pdf.extraction_method === 'ocr' ? 'ocr' : 'text';
+            const imageBased = pdf.is_image_based ? ' (Imagem)' : '';
+            
+            return `
+                <div class="pdf-item ${pdf.hash === this.activePdfHash ? 'active' : ''}" data-hash="${pdf.hash}">
+                    <div class="pdf-item-header">
+                        <div>
+                            <div class="pdf-item-title">
+                                ${pdf.name}
+                                <span class="pdf-method ${methodClass}" title="Método de extração: ${methodText}${imageBased}">
+                                    <i class="${methodIcon}"></i> ${methodText}
+                                </span>
+                            </div>
+                            <div class="pdf-item-meta">
+                                <span><i class="fas fa-file"></i> ${this.formatFileSize(pdf.size)}</span>
+                                <span><i class="fas fa-copy"></i> ${pdf.pages} páginas</span>
+                                <span><i class="fas fa-text-width"></i> ${this.formatTextLength(pdf.text_length)}</span>
+                            </div>
+                        </div>
+                        <div class="pdf-item-actions">
+                            <button class="pdf-action-btn delete" onclick="chatbot.deletePDF('${pdf.hash}')" title="Remover PDF">
+                                <i class="fas fa-trash"></i>
+                            </button>
                         </div>
                     </div>
-                    <div class="pdf-item-actions">
-                        <button class="pdf-action-btn delete" onclick="chatbot.deletePDF('${pdf.hash}')" title="Remover PDF">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
 
         // Add click listeners
         this.pdfList.querySelectorAll('.pdf-item').forEach(item => {
@@ -208,19 +222,22 @@ class ChatbotUI {
         // Add system message about active PDF
         const pdf = this.pdfs.find(p => p.hash === hash);
         if (pdf) {
-            this.addMessage(`📄 PDF ativo: "${pdf.name}" - Agora a IA responderá baseada neste documento.`, 'system');
+            const methodInfo = pdf.extraction_method === 'ocr' ? ' (processado com OCR)' : '';
+            this.addMessage(`📄 PDF ativo: "${pdf.name}"${methodInfo} - Agora a IA responderá baseada neste documento.`, 'system');
         }
     }
 
     updatePDFStatus() {
         if (this.activePdfHash) {
-            const pdf = this.pdfs.find(p => p.hash === this.activePdfHash);
-            if (pdf) {
-                this.pdfStatus.style.display = 'flex';
-                this.pdfInfo.textContent = `PDF: ${pdf.name}`;
+            const activePdf = this.pdfs.find(pdf => pdf.hash === this.activePdfHash);
+            if (activePdf) {
+                this.pdfStatus.style.display = 'block';
+                this.pdfInfo.textContent = `PDF ativo: ${activePdf.name}`;
+                this.pdfStatus.querySelector('.status-content').classList.add('active');
             }
         } else {
             this.pdfStatus.style.display = 'none';
+            this.pdfStatus.querySelector('.status-content').classList.remove('active');
         }
     }
 
@@ -256,49 +273,43 @@ class ChatbotUI {
     }
 
     async uploadPDFFile(file) {
+        // Validar tamanho do arquivo (50MB)
+        const maxSize = 50 * 1024 * 1024; // 50MB
+        if (file.size > maxSize) {
+            this.addMessage(`❌ Arquivo muito grande. Limite máximo: 50MB. Arquivo: ${this.formatFileSize(file.size)}`, 'system');
+            return;
+        }
+
+        // Validar tipo do arquivo
         if (file.type !== 'application/pdf') {
-            this.addMessage('❌ Apenas arquivos PDF são permitidos.', 'system');
+            this.addMessage('❌ Por favor, selecione apenas arquivos PDF.', 'system');
             return;
         }
 
-        if (file.size > 16 * 1024 * 1024) { // 16MB
-            this.addMessage('❌ Arquivo muito grande. Máximo 16MB.', 'system');
-            return;
-        }
-
+        this.hidePDFModal();
+        this.showLoading();
+        
         const formData = new FormData();
-        formData.append('pdf_file', file);
-
-        // Show progress
-        this.uploadZone.style.display = 'none';
-        this.uploadProgress.style.display = 'block';
-        this.progressFill.style.width = '0%';
-        this.progressText.textContent = 'Enviando PDF...';
-
+        formData.append('pdf', file);
+        
         try {
-            const response = await fetch('/api/upload-pdf', {
+            const response = await fetch('/api/pdfs', {
                 method: 'POST',
                 body: formData
             });
-
+            
             const data = await response.json();
-
+            
             if (response.ok) {
-                this.progressFill.style.width = '100%';
-                this.progressText.textContent = 'PDF processado com sucesso!';
-                
-                setTimeout(() => {
-                    this.hidePDFModal();
-                    this.addMessage(`✅ ${data.message}`, 'system');
-                    this.loadPDFs();
-                }, 1000);
+                this.addMessage(`✅ PDF "${file.name}" carregado com sucesso!`, 'system');
+                await this.loadPDFs();
             } else {
-                this.addMessage(`❌ Erro: ${data.error}`, 'system');
-                this.hidePDFModal();
+                this.addMessage(`❌ Erro ao carregar PDF: ${data.error}`, 'system');
             }
         } catch (error) {
-            this.addMessage('❌ Erro ao fazer upload do PDF', 'system');
-            this.hidePDFModal();
+            this.addMessage('❌ Erro de conexão ao carregar PDF', 'system');
+        } finally {
+            this.hideLoading();
         }
     }
 
@@ -540,4 +551,4 @@ document.addEventListener('DOMContentLoaded', () => {
             chatbot.checkConnection();
         }
     }, 30000); // Verificar a cada 30 segundos
-}); 
+});

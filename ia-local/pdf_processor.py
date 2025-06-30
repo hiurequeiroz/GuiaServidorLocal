@@ -2,6 +2,7 @@
 """
 Processador de PDFs para o Chatbot de IA Local
 Extrai texto de PDFs para uso como contexto nas conversas
+Suporte a OCR para PDFs de imagem
 """
 
 import os
@@ -10,13 +11,17 @@ import hashlib
 from datetime import datetime
 import PyPDF2
 import pdfplumber
+import pytesseract
+from pdf2image import convert_from_path
+from PIL import Image
 from typing import Dict, List, Optional
 
 class PDFProcessor:
-    def __init__(self, upload_dir: str = 'uploads', cache_dir: str = 'cache'):
+    def __init__(self, upload_dir: str = 'uploads', cache_dir: str = 'cache', enable_ocr: bool = True):
         self.upload_dir = upload_dir
         self.cache_dir = cache_dir
         self.cache_file = os.path.join(cache_dir, 'pdf_cache.json')
+        self.enable_ocr = enable_ocr
         
         # Criar diretórios se não existirem
         os.makedirs(upload_dir, exist_ok=True)
@@ -51,9 +56,87 @@ class PDFProcessor:
                 hash_md5.update(chunk)
         return hash_md5.hexdigest()
     
+    def _extract_text_normal(self, file_path: str) -> str:
+        """Extrai texto usando métodos normais (PyPDF2 + pdfplumber)"""
+        text = ""
+        
+        # Tentar PyPDF2
+        try:
+            with open(file_path, 'rb') as file:
+                pdf_reader = PyPDF2.PdfReader(file)
+                for page in pdf_reader.pages:
+                    page_text = page.extract_text()
+                    if page_text:
+                        text += page_text + "\n"
+        except Exception as e:
+            print(f"Erro PyPDF2: {e}")
+        
+        # Se PyPDF2 não funcionou, tentar pdfplumber
+        if not text.strip():
+            try:
+                with pdfplumber.open(file_path) as pdf:
+                    for page in pdf.pages:
+                        page_text = page.extract_text()
+                        if page_text:
+                            text += page_text + "\n"
+            except Exception as e:
+                print(f"Erro pdfplumber: {e}")
+        
+        return text
+    
+    def _extract_text_with_ocr(self, file_path: str, max_pages: int = 10) -> str:
+        """Extrai texto usando OCR (Tesseract)"""
+        if not self.enable_ocr:
+            return ""
+        
+        try:
+            print(f"🔄 Processando OCR para {os.path.basename(file_path)}...")
+            
+            # Converter PDF para imagens
+            images = convert_from_path(file_path, first_page=1, last_page=min(max_pages, 10))
+            
+            text = ""
+            total_pages = len(images)
+            
+            for i, image in enumerate(images):
+                print(f"  📄 Processando página {i+1}/{total_pages}...")
+                
+                # Configurar Tesseract para português
+                config = '--oem 3 --psm 6 -l por+eng'
+                
+                # Extrair texto da imagem
+                page_text = pytesseract.image_to_string(image, config=config)
+                
+                if page_text.strip():
+                    text += f"--- Página {i+1} ---\n{page_text.strip()}\n\n"
+                
+                # Limitar processamento para não sobrecarregar
+                if i >= max_pages - 1:
+                    text += f"\n[Processamento limitado a {max_pages} páginas para performance]"
+                    break
+            
+            print(f"✅ OCR concluído: {len(text)} caracteres extraídos")
+            return text
+            
+        except Exception as e:
+            print(f"❌ Erro no OCR: {e}")
+            return ""
+    
+    def _is_pdf_image_based(self, file_path: str) -> bool:
+        """Detecta se o PDF é baseado em imagem (sem texto extraível)"""
+        # Tentar extrair texto normal
+        normal_text = self._extract_text_normal(file_path)
+        
+        # Se não conseguiu extrair texto ou extraiu muito pouco, provavelmente é imagem
+        if not normal_text.strip() or len(normal_text.strip()) < 100:
+            return True
+        
+        return False
+    
     def extract_text_from_pdf(self, file_path: str) -> Dict:
         """
         Extrai texto de um PDF usando múltiplos métodos
+        Detecta automaticamente se é PDF de texto ou imagem
         Retorna dicionário com texto e metadados
         """
         file_hash = self._get_file_hash(file_path)
@@ -66,37 +149,21 @@ class PDFProcessor:
                 return cached_data
         
         try:
-            # Extrair texto usando PyPDF2
-            text_pypdf2 = ""
-            try:
-                with open(file_path, 'rb') as file:
-                    pdf_reader = PyPDF2.PdfReader(file)
-                    for page in pdf_reader.pages:
-                        text_pypdf2 += page.extract_text() + "\n"
-            except Exception as e:
-                print(f"Erro PyPDF2: {e}")
-            
-            # Extrair texto usando pdfplumber (mais robusto)
-            text_pdfplumber = ""
-            try:
-                with pdfplumber.open(file_path) as pdf:
-                    for page in pdf.pages:
-                        page_text = page.extract_text()
-                        if page_text:
-                            text_pdfplumber += page_text + "\n"
-            except Exception as e:
-                print(f"Erro pdfplumber: {e}")
-            
-            # Usar o melhor resultado
-            if text_pdfplumber.strip():
-                final_text = text_pdfplumber
-            elif text_pypdf2.strip():
-                final_text = text_pypdf2
-            else:
-                final_text = ""
-            
-            # Extrair metadados
+            # Extrair metadados primeiro
             metadata = self._extract_metadata(file_path)
+            
+            # Detectar tipo de PDF
+            is_image_based = self._is_pdf_image_based(file_path)
+            
+            # Extrair texto baseado no tipo
+            if is_image_based and self.enable_ocr:
+                print(f"📷 PDF detectado como imagem, usando OCR...")
+                final_text = self._extract_text_with_ocr(file_path)
+                extraction_method = "ocr"
+            else:
+                print(f"📄 PDF detectado como texto, extraindo normalmente...")
+                final_text = self._extract_text_normal(file_path)
+                extraction_method = "normal"
             
             # Preparar resultado
             result = {
@@ -110,7 +177,9 @@ class PDFProcessor:
                 'author': metadata.get('author', ''),
                 'subject': metadata.get('subject', ''),
                 'processed_at': datetime.now().isoformat(),
-                'file_hash': file_hash
+                'file_hash': file_hash,
+                'extraction_method': extraction_method,
+                'is_image_based': is_image_based
             }
             
             # Salvar no cache
@@ -157,7 +226,9 @@ class PDFProcessor:
                     'text_length': data.get('text_length', 0),
                     'processed_at': data.get('processed_at', ''),
                     'title': data.get('title', ''),
-                    'author': data.get('author', '')
+                    'author': data.get('author', ''),
+                    'extraction_method': data.get('extraction_method', 'unknown'),
+                    'is_image_based': data.get('is_image_based', False)
                 })
         
         # Ordenar por data de processamento (mais recente primeiro)
@@ -182,7 +253,11 @@ class PDFProcessor:
         if len(text) > max_length:
             text = text[:max_length] + "..."
         
-        return f"Contexto do PDF '{data['file_name']}':\n{text}\n\n"
+        method_info = ""
+        if data.get('extraction_method') == 'ocr':
+            method_info = " (processado com OCR)"
+        
+        return f"Contexto do PDF '{data['file_name']}'{method_info}:\n{text}\n\n"
     
     def delete_pdf(self, file_hash: str) -> bool:
         """Remove PDF do cache e arquivo"""

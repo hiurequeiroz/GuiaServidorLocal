@@ -719,4 +719,48 @@ body {
         flex-direction: column;
         gap: 5px;
     }
+    
+    .pdf-item-title {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+    
+    .pdf-method {
+        margin-left: 0;
+        align-self: flex-start;
+    }
+}
+
+/* Indicadores de método de extração */
+.pdf-method {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+.pdf-method.ocr {
+    background-color: #ff6b6b;
+    color: white;
+}
+
+.pdf-method.text {
+    background-color: #4ecdc4;
+    color: white;
+}
+
+.pdf-method i {
+    margin-right: 3px;
+}
+
+/* Melhorar espaçamento do título do PDF */
+.pdf-item-title {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
 } 
