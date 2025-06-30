@@ -21,7 +21,7 @@ services:
     restart: unless-stopped
 
   # Serviço Web - Interface do Chatbot
-  web:
+  chatbot:
     build: .
     container_name: ia-local-web
     ports:
@@ -32,6 +32,8 @@ services:
       - OLLAMA_HOST=http://ollama:11434
       - MODEL_NAME=llama2
     volumes:
+      - ./uploads:/app/uploads
+      - ./cache:/app/cache
       - ./logs:/app/logs
     restart: unless-stopped
 

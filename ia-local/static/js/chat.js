@@ -8,14 +8,33 @@ class ChatbotUI {
         this.downloadButton = document.getElementById('download-model');
         this.clearButton = document.getElementById('clear-chat');
         this.exportButton = document.getElementById('export-chat');
+        this.clearPdfsButton = document.getElementById('clear-pdfs');
         this.loadingOverlay = document.getElementById('loading-overlay');
         this.connectionStatus = document.getElementById('connection-status');
         this.connectionText = document.getElementById('connection-text');
         this.modelInfo = document.getElementById('model-info');
+        this.pdfStatus = document.getElementById('pdf-status');
+        this.pdfInfo = document.getElementById('pdf-info');
+        
+        // PDF elements
+        this.uploadPdfBtn = document.getElementById('upload-pdf-btn');
+        this.pdfList = document.getElementById('pdf-list');
+        this.pdfModal = document.getElementById('pdf-modal');
+        this.closeModal = document.getElementById('close-modal');
+        this.modalPdfInput = document.getElementById('modal-pdf-input');
+        this.modalSelectBtn = document.getElementById('modal-select-btn');
+        this.uploadZone = document.getElementById('upload-zone');
+        this.uploadProgress = document.getElementById('upload-progress');
+        this.progressFill = document.getElementById('progress-fill');
+        this.progressText = document.getElementById('progress-text');
+        
+        this.activePdfHash = null;
+        this.pdfs = [];
         
         this.setupEventListeners();
         this.checkConnection();
         this.loadAvailableModels();
+        this.loadPDFs();
     }
 
     setupEventListeners() {
@@ -37,10 +56,46 @@ class ChatbotUI {
         // Exportar histórico
         this.exportButton.addEventListener('click', () => this.exportChat());
 
+        // Limpar PDFs
+        this.clearPdfsButton.addEventListener('click', () => this.clearPDFs());
+
         // Auto-resize do textarea
         this.messageInput.addEventListener('input', () => {
             this.messageInput.style.height = 'auto';
             this.messageInput.style.height = this.messageInput.scrollHeight + 'px';
+        });
+
+        // PDF upload
+        this.uploadPdfBtn.addEventListener('click', () => this.showPDFModal());
+        this.closeModal.addEventListener('click', () => this.hidePDFModal());
+        this.modalSelectBtn.addEventListener('click', () => this.modalPdfInput.click());
+        this.modalPdfInput.addEventListener('change', (e) => this.handlePDFUpload(e));
+
+        // Drag and drop
+        this.uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            this.uploadZone.style.borderColor = '#667eea';
+        });
+
+        this.uploadZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            this.uploadZone.style.borderColor = '#dee2e6';
+        });
+
+        this.uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            this.uploadZone.style.borderColor = '#dee2e6';
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].type === 'application/pdf') {
+                this.uploadPDFFile(files[0]);
+            }
+        });
+
+        // Modal backdrop click
+        this.pdfModal.addEventListener('click', (e) => {
+            if (e.target === this.pdfModal) {
+                this.hidePDFModal();
+            }
         });
     }
 
@@ -84,6 +139,217 @@ class ChatbotUI {
         }
     }
 
+    async loadPDFs() {
+        try {
+            const response = await fetch('/api/pdfs');
+            const data = await response.json();
+            
+            if (data.pdfs) {
+                this.pdfs = data.pdfs;
+                this.renderPDFList();
+            }
+        } catch (error) {
+            console.error('Erro ao carregar PDFs:', error);
+        }
+    }
+
+    renderPDFList() {
+        if (this.pdfs.length === 0) {
+            this.pdfList.innerHTML = `
+                <div class="pdf-empty">
+                    <i class="fas fa-file-pdf"></i>
+                    <p>Nenhum PDF carregado</p>
+                    <p>Faça upload de um PDF para começar</p>
+                </div>
+            `;
+            return;
+        }
+
+        this.pdfList.innerHTML = this.pdfs.map(pdf => `
+            <div class="pdf-item ${pdf.hash === this.activePdfHash ? 'active' : ''}" data-hash="${pdf.hash}">
+                <div class="pdf-item-header">
+                    <div>
+                        <div class="pdf-item-title">${pdf.name}</div>
+                        <div class="pdf-item-meta">
+                            <span><i class="fas fa-file"></i> ${this.formatFileSize(pdf.size)}</span>
+                            <span><i class="fas fa-copy"></i> ${pdf.pages} páginas</span>
+                            <span><i class="fas fa-text-width"></i> ${this.formatTextLength(pdf.text_length)}</span>
+                        </div>
+                    </div>
+                    <div class="pdf-item-actions">
+                        <button class="pdf-action-btn delete" onclick="chatbot.deletePDF('${pdf.hash}')" title="Remover PDF">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        // Add click listeners
+        this.pdfList.querySelectorAll('.pdf-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                if (!e.target.closest('.pdf-action-btn')) {
+                    const hash = item.dataset.hash;
+                    this.setActivePDF(hash);
+                }
+            });
+        });
+    }
+
+    setActivePDF(hash) {
+        this.activePdfHash = hash;
+        this.renderPDFList();
+        this.updatePDFStatus();
+        
+        // Add system message about active PDF
+        const pdf = this.pdfs.find(p => p.hash === hash);
+        if (pdf) {
+            this.addMessage(`📄 PDF ativo: "${pdf.name}" - Agora a IA responderá baseada neste documento.`, 'system');
+        }
+    }
+
+    updatePDFStatus() {
+        if (this.activePdfHash) {
+            const pdf = this.pdfs.find(p => p.hash === this.activePdfHash);
+            if (pdf) {
+                this.pdfStatus.style.display = 'flex';
+                this.pdfInfo.textContent = `PDF: ${pdf.name}`;
+            }
+        } else {
+            this.pdfStatus.style.display = 'none';
+        }
+    }
+
+    formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    formatTextLength(length) {
+        if (length < 1000) return length + ' chars';
+        return (length / 1000).toFixed(1) + 'k chars';
+    }
+
+    showPDFModal() {
+        this.pdfModal.classList.remove('hidden');
+    }
+
+    hidePDFModal() {
+        this.pdfModal.classList.add('hidden');
+        this.uploadZone.style.display = 'block';
+        this.uploadProgress.style.display = 'none';
+        this.modalPdfInput.value = '';
+    }
+
+    handlePDFUpload(event) {
+        const file = event.target.files[0];
+        if (file) {
+            this.uploadPDFFile(file);
+        }
+    }
+
+    async uploadPDFFile(file) {
+        if (file.type !== 'application/pdf') {
+            this.addMessage('❌ Apenas arquivos PDF são permitidos.', 'system');
+            return;
+        }
+
+        if (file.size > 16 * 1024 * 1024) { // 16MB
+            this.addMessage('❌ Arquivo muito grande. Máximo 16MB.', 'system');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('pdf_file', file);
+
+        // Show progress
+        this.uploadZone.style.display = 'none';
+        this.uploadProgress.style.display = 'block';
+        this.progressFill.style.width = '0%';
+        this.progressText.textContent = 'Enviando PDF...';
+
+        try {
+            const response = await fetch('/api/upload-pdf', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                this.progressFill.style.width = '100%';
+                this.progressText.textContent = 'PDF processado com sucesso!';
+                
+                setTimeout(() => {
+                    this.hidePDFModal();
+                    this.addMessage(`✅ ${data.message}`, 'system');
+                    this.loadPDFs();
+                }, 1000);
+            } else {
+                this.addMessage(`❌ Erro: ${data.error}`, 'system');
+                this.hidePDFModal();
+            }
+        } catch (error) {
+            this.addMessage('❌ Erro ao fazer upload do PDF', 'system');
+            this.hidePDFModal();
+        }
+    }
+
+    async deletePDF(hash) {
+        if (!confirm('Tem certeza que deseja remover este PDF?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/pdfs/${hash}`, {
+                method: 'DELETE'
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                this.addMessage(`✅ ${data.message}`, 'system');
+                
+                // Remove from active if it was active
+                if (this.activePdfHash === hash) {
+                    this.activePdfHash = null;
+                    this.updatePDFStatus();
+                }
+                
+                this.loadPDFs();
+            } else {
+                this.addMessage(`❌ Erro: ${data.error}`, 'system');
+            }
+        } catch (error) {
+            this.addMessage('❌ Erro ao remover PDF', 'system');
+        }
+    }
+
+    async clearPDFs() {
+        if (!confirm('Tem certeza que deseja remover todos os PDFs?')) {
+            return;
+        }
+
+        try {
+            // Remove each PDF
+            for (const pdf of this.pdfs) {
+                await fetch(`/api/pdfs/${pdf.hash}`, {
+                    method: 'DELETE'
+                });
+            }
+
+            this.activePdfHash = null;
+            this.updatePDFStatus();
+            this.loadPDFs();
+            this.addMessage('✅ Todos os PDFs foram removidos.', 'system');
+        } catch (error) {
+            this.addMessage('❌ Erro ao limpar PDFs', 'system');
+        }
+    }
+
     async sendMessage() {
         const message = this.messageInput.value.trim();
         if (!message) return;
@@ -106,7 +372,8 @@ class ChatbotUI {
                 },
                 body: JSON.stringify({
                     message: message,
-                    model: selectedModel
+                    model: selectedModel,
+                    pdf_context: this.activePdfHash
                 })
             });
 
@@ -201,20 +468,16 @@ class ChatbotUI {
             const data = await response.json();
             
             if (data.history && data.history.length > 0) {
-                const exportData = {
-                    exportDate: new Date().toISOString(),
-                    totalMessages: data.history.length,
-                    conversations: data.history
-                };
+                const chatText = data.history.map(entry => {
+                    const timestamp = new Date(entry.timestamp).toLocaleString('pt-BR');
+                    return `[${timestamp}] Usuário: ${entry.user_message}\n[${timestamp}] IA: ${entry.ai_response}\n\n`;
+                }).join('');
                 
-                const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-                    type: 'application/json'
-                });
-                
+                const blob = new Blob([chatText], { type: 'text/plain;charset=utf-8' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `chatbot-history-${new Date().toISOString().split('T')[0]}.json`;
+                a.download = `chat_history_${new Date().toISOString().split('T')[0]}.txt`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
@@ -222,7 +485,7 @@ class ChatbotUI {
                 
                 this.addMessage('✅ Histórico exportado com sucesso!', 'system');
             } else {
-                this.addMessage('ℹ️ Nenhuma conversa para exportar.', 'system');
+                this.addMessage('ℹ️ Nenhum histórico para exportar.', 'system');
             }
         } catch (error) {
             this.addMessage('❌ Erro ao exportar histórico', 'system');
@@ -231,22 +494,20 @@ class ChatbotUI {
 
     showLoading() {
         this.loadingOverlay.classList.remove('hidden');
-        this.sendButton.disabled = true;
     }
 
     hideLoading() {
         this.loadingOverlay.classList.add('hidden');
-        this.sendButton.disabled = false;
     }
 }
 
-// Inicializar o chatbot quando a página carregar
+// Inicializar chatbot quando a página carregar
+let chatbot;
 document.addEventListener('DOMContentLoaded', () => {
-    new ChatbotUI();
+    chatbot = new ChatbotUI();
     
     // Verificar conexão periodicamente
     setInterval(() => {
-        const chatbot = window.chatbot;
         if (chatbot) {
             chatbot.checkConnection();
         }

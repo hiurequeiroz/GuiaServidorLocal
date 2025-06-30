@@ -11,6 +11,8 @@ from datetime import datetime
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
+from werkzeug.utils import secure_filename
+from pdf_processor import PDFProcessor
 
 # Carregar variáveis de ambiente
 load_dotenv()
@@ -22,9 +24,20 @@ CORS(app)
 OLLAMA_HOST = os.getenv('OLLAMA_HOST', 'http://localhost:11434')
 MODEL_NAME = os.getenv('MODEL_NAME', 'llama2')
 LOG_FILE = 'logs/chat_history.json'
+UPLOAD_FOLDER = 'uploads'
+MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size
 
-# Garantir que o diretório de logs existe
+# Configurar upload
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = MAX_CONTENT_LENGTH
+
+# Inicializar processador de PDF
+pdf_processor = PDFProcessor(upload_dir=UPLOAD_FOLDER, cache_dir='cache')
+
+# Garantir que os diretórios existem
 os.makedirs('logs', exist_ok=True)
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs('cache', exist_ok=True)
 
 def load_chat_history():
     """Carrega histórico de conversas"""
@@ -55,6 +68,10 @@ def get_available_models():
         print(f"Erro ao obter modelos: {e}")
     return []
 
+def allowed_file(filename):
+    """Verifica se o arquivo é um PDF válido"""
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() == 'pdf'
+
 @app.route('/')
 def index():
     """Página principal do chatbot"""
@@ -68,14 +85,22 @@ def chat():
         data = request.get_json()
         message = data.get('message', '').strip()
         model = data.get('model', MODEL_NAME)
+        pdf_context = data.get('pdf_context', '')  # Hash do PDF ativo
         
         if not message:
             return jsonify({'error': 'Mensagem vazia'}), 400
         
+        # Adicionar contexto do PDF se especificado
+        full_prompt = message
+        if pdf_context:
+            context = pdf_processor.get_pdf_context(pdf_context)
+            if context:
+                full_prompt = f"{context}Pergunta do usuário: {message}\n\nResponda baseado no contexto do PDF fornecido."
+        
         # Preparar requisição para o Ollama
         payload = {
             'model': model,
-            'prompt': message,
+            'prompt': full_prompt,
             'stream': False
         }
         
@@ -95,7 +120,8 @@ def chat():
                 'timestamp': datetime.now().isoformat(),
                 'user_message': message,
                 'ai_response': ai_response,
-                'model': model
+                'model': model,
+                'pdf_context': pdf_context
             }
             
             history = load_chat_history()
@@ -114,6 +140,83 @@ def chat():
         return jsonify({'error': 'Timeout - o modelo demorou muito para responder'}), 408
     except Exception as e:
         return jsonify({'error': f'Erro interno: {str(e)}'}), 500
+
+@app.route('/api/upload-pdf', methods=['POST'])
+def upload_pdf():
+    """Endpoint para upload de PDF"""
+    try:
+        if 'pdf_file' not in request.files:
+            return jsonify({'error': 'Nenhum arquivo enviado'}), 400
+        
+        file = request.files['pdf_file']
+        if file.filename == '':
+            return jsonify({'error': 'Nenhum arquivo selecionado'}), 400
+        
+        if not allowed_file(file.filename):
+            return jsonify({'error': 'Apenas arquivos PDF são permitidos'}), 400
+        
+        # Salvar arquivo
+        filename = secure_filename(file.filename)
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(file_path)
+        
+        # Processar PDF
+        result = pdf_processor.extract_text_from_pdf(file_path)
+        
+        if 'error' in result:
+            # Remover arquivo se houver erro
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            return jsonify({'error': result['error']}), 500
+        
+        return jsonify({
+            'message': f'PDF "{filename}" processado com sucesso!',
+            'pdf': {
+                'hash': result['file_hash'],
+                'name': result['file_name'],
+                'size': result['file_size'],
+                'pages': result['pages'],
+                'text_length': result['text_length'],
+                'title': result['title'],
+                'author': result['author']
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Erro ao processar PDF: {str(e)}'}), 500
+
+@app.route('/api/pdfs')
+def list_pdfs():
+    """Endpoint para listar PDFs processados"""
+    try:
+        pdfs = pdf_processor.get_uploaded_pdfs()
+        return jsonify({'pdfs': pdfs})
+    except Exception as e:
+        return jsonify({'error': f'Erro ao listar PDFs: {str(e)}'}), 500
+
+@app.route('/api/pdfs/<file_hash>', methods=['DELETE'])
+def delete_pdf(file_hash):
+    """Endpoint para deletar PDF"""
+    try:
+        success = pdf_processor.delete_pdf(file_hash)
+        if success:
+            return jsonify({'message': 'PDF removido com sucesso'})
+        else:
+            return jsonify({'error': 'PDF não encontrado'}), 404
+    except Exception as e:
+        return jsonify({'error': f'Erro ao deletar PDF: {str(e)}'}), 500
+
+@app.route('/api/pdfs/<file_hash>/context')
+def get_pdf_context(file_hash):
+    """Endpoint para obter contexto do PDF"""
+    try:
+        context = pdf_processor.get_pdf_context(file_hash)
+        if context:
+            return jsonify({'context': context})
+        else:
+            return jsonify({'error': 'PDF não encontrado'}), 404
+    except Exception as e:
+        return jsonify({'error': f'Erro ao obter contexto: {str(e)}'}), 500
 
 @app.route('/api/models')
 def models():
@@ -176,5 +279,6 @@ if __name__ == '__main__':
     print(f"🌐 Acesse: http://{local_ip}:8080")
     print(f"🔗 Ollama: {OLLAMA_HOST}")
     print(f"📝 Modelo padrão: {MODEL_NAME}")
+    print(f"📄 Funcionalidade de PDF: Ativada")
     
     app.run(host='0.0.0.0', port=8080, debug=False) 

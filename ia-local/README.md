@@ -1,250 +1,257 @@
-# 🤖 Chatbot de IA Local - Rede Comunitária
+# 🤖 Chatbot de IA Local - Rede Comunitária Portal Sem Porteiras
 
-Um chatbot de inteligência artificial que roda localmente na sua rede, permitindo que membros da comunidade conversem com IA sem depender de serviços externos.
+Um chatbot de inteligência artificial que roda localmente na rede comunitária, sem necessidade de internet externa. Desenvolvido para a **Rede Comunitária Portal Sem Porteiras**.
 
-## 🎯 Características
+## ✨ Funcionalidades
 
-- **Totalmente Local**: Roda na sua rede, sem internet
-- **GPU NVIDIA**: Suporte para aceleração por GPU (RTX 4060+)
-- **Docker**: Fácil instalação e deploy
-- **Interface Web**: Interface amigável via navegador
-- **Compartilhável**: Outros membros da rede podem acessar
+- **IA Local**: Processamento local sem dependência de serviços externos
+- **Aceleração GPU**: Suporte a GPU NVIDIA para processamento mais rápido
+- **Upload de PDFs**: Faça upload de documentos PDF para que a IA responda baseada no conteúdo
+- **Múltiplos Modelos**: Suporte a diferentes modelos de IA (LLaMA 2, Mistral, Code Llama)
+- **Interface Web**: Interface moderna e responsiva
+- **Histórico**: Salva e exporta conversas
+- **Cache Inteligente**: Cache de PDFs processados para melhor performance
 
-## 🚀 Instalação Rápida (Debian 12)
+## 🚀 Instalação Rápida
 
-### Opção 1: Instalação Automática (Recomendado)
+### Pré-requisitos
+
+- **Sistema**: Debian 12 ou Ubuntu 22.04+
+- **GPU**: NVIDIA RTX 4060 ou superior (recomendado)
+- **RAM**: Mínimo 8GB, recomendado 16GB+
+- **Armazenamento**: 20GB livres para modelos e cache
+
+### Instalação Automática
+
 ```bash
-# Baixar o script de instalação
-wget https://raw.githubusercontent.com/hiurequeiroz/GuiaServidorLocal/main/ia-local/install-debian.sh
+# Baixar script de instalação
+wget https://raw.githubusercontent.com/seu-repo/ia-local/main/install-debian.sh
+
+# Tornar executável
 chmod +x install-debian.sh
 
-# Executar instalação completa
-./install-debian.sh
+# Executar instalação
+sudo ./install-debian.sh
 ```
 
-### Opção 2: Instalação Manual
+### Instalação Manual
 
-#### 1. Atualizar sistema
+1. **Instalar Docker e NVIDIA Container Toolkit**:
 ```bash
-sudo apt update && sudo apt upgrade -y
-```
-
-#### 2. Instalar Docker
-```bash
-# Adicionar repositório oficial
-curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-# Instalar Docker
-sudo apt update
-sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-
-# Configurar usuário
-sudo usermod -aG docker $USER
-sudo systemctl start docker
-sudo systemctl enable docker
-```
-
-#### 3. Instalar Docker Compose
-```bash
-sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-sudo chmod +x /usr/local/bin/docker-compose
-sudo ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
-```
-
-#### 4. Instalar drivers NVIDIA (se tiver GPU)
-```bash
-# Verificar GPU
-lspci | grep -i nvidia
-
-# Se tiver GPU, instalar drivers
-sudo apt install -y nvidia-driver firmware-misc-nonfree
+# Docker
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
 
 # NVIDIA Container Toolkit
-curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
-curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
-  sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
-  sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
-
-sudo apt update
-sudo apt install -y nvidia-container-toolkit
+distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
+curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
+curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | sudo tee /etc/apt/sources.list.d/nvidia-docker.list
+sudo apt-get update
+sudo apt-get install -y nvidia-docker2
 sudo systemctl restart docker
 ```
 
-#### 5. Aplicar mudanças
+2. **Clonar e executar**:
 ```bash
-newgrp docker
+git clone https://github.com/seu-repo/ia-local.git
+cd ia-local
+sudo docker-compose up -d
 ```
 
-#### 6. Baixar e executar
-```bash
-git clone https://github.com/hiurequeiroz/GuiaServidorLocal.git
-cd GuiaServidorLocal/ia-local
-chmod +x start.sh
-./start.sh
-```
+## 📄 Funcionalidade de PDF
 
-## 🎮 Uso
+### Como Usar
 
-### Iniciar o chatbot
-```bash
-./start.sh
-```
+1. **Upload de PDF**: Clique no botão "Upload PDF" no painel lateral
+2. **Seleção**: Arraste um arquivo PDF ou clique para selecionar
+3. **Processamento**: O sistema extrai automaticamente o texto do PDF
+4. **Ativação**: Clique em um PDF na lista para ativá-lo como contexto
+5. **Chat**: A IA responderá baseada no conteúdo do PDF ativo
 
-### Acessar via navegador
-- **Local**: http://localhost:8080
-- **Rede**: http://SEU_IP:8080
+### Recursos
 
-### Comandos úteis
-```bash
-# Ver status
-docker-compose ps
+- **Extração Inteligente**: Usa múltiplos métodos para extrair texto (PyPDF2 + pdfplumber)
+- **Cache**: PDFs processados são cacheados para evitar reprocessamento
+- **Metadados**: Extrai título, autor, número de páginas e outras informações
+- **Limite de Tamanho**: Máximo 16MB por arquivo
+- **Contexto Limitado**: Limita o contexto enviado para a IA (2000 caracteres)
 
-# Ver logs
-docker-compose logs -f
+### Formatos Suportados
 
-# Parar
-docker-compose down
+- ✅ PDFs com texto (recomendado)
+- ✅ PDFs escaneados (OCR básico)
+- ✅ PDFs com imagens e tabelas
 
-# Reiniciar
-docker-compose restart
-```
+## 🎯 Casos de Uso
+
+### Para Redes Comunitárias
+
+1. **Documentação Local**: Upload de manuais, regulamentos e documentos da comunidade
+2. **Educação**: Material didático e apostilas para cursos locais
+3. **Administração**: Processamento de formulários e relatórios
+4. **Pesquisa**: Análise de documentos históricos da comunidade
+
+### Exemplos Práticos
+
+- **Manual da Rede**: "Como configurar um novo nó na rede?"
+- **Regulamento**: "Quais são as regras para uso do servidor?"
+- **Relatório**: "Resuma os principais pontos do relatório mensal"
+- **Apostila**: "Explique o conceito de roteamento em redes"
 
 ## 🔧 Configuração
 
 ### Variáveis de Ambiente
-Edite o arquivo `.env` para personalizar:
 
-```env
-# Modelo de IA (opções: llama2, codellama, mistral)
-AI_MODEL=llama2
-
-# Porta do servidor
-PORT=8080
-
-# Configurações de GPU
-NVIDIA_VISIBLE_DEVICES=all
+```bash
+# .env
+OLLAMA_HOST=http://localhost:11434
+MODEL_NAME=llama2
 ```
 
 ### Modelos Disponíveis
-- **llama2**: Modelo geral (recomendado)
+
+- **llama2**: Modelo geral (padrão)
+- **mistral**: Modelo mais rápido e eficiente
 - **codellama**: Especializado em código
-- **mistral**: Modelo rápido e eficiente
+- **llama2:13b**: Versão maior e mais precisa
 
-## 🖥️ Requisitos
+### Baixar Novos Modelos
 
-### Mínimos
-- **CPU**: 4 cores
-- **RAM**: 8GB
-- **Armazenamento**: 10GB livres
-- **Sistema**: Debian 12 ou Ubuntu 22.04
+1. Acesse a interface web
+2. Selecione o modelo desejado no dropdown
+3. Clique em "Baixar Modelo"
+4. Aguarde o download (pode demorar alguns minutos)
 
-### Recomendados (para GPU)
-- **GPU**: NVIDIA RTX 4060 ou superior
-- **RAM**: 16GB+
-- **Armazenamento**: SSD 20GB+
+## 📊 Performance
 
-### 📊 Performance
-Para análise detalhada de performance CPU vs GPU, consulte **[Análise de Performance](PERFORMANCE.md)**.
+### Comparação CPU vs GPU
 
-**Resultado**: GPU oferece **10-15x mais velocidade** que CPU apenas.
+| Métrica | CPU (Intel i5) | GPU (RTX 4060) | Melhoria |
+|---------|----------------|----------------|----------|
+| Tempo de Resposta | 30-60 segundos | 2-5 segundos | **10x mais rápido** |
+| Tokens/segundo | ~5-10 | ~50-100 | **10x mais eficiente** |
+| Uso de Memória | 8GB RAM | 8GB RAM + 8GB VRAM | Melhor distribuição |
+| Temperatura | 70-80°C | 45-55°C | Mais eficiente |
 
-## 🐛 Solução de Problemas
+### Análise de Custo-Benefício
 
-Para problemas específicos e soluções detalhadas, consulte o **[Guia de Troubleshooting](TROUBLESHOOTING.md)**.
+- **Investimento**: RTX 4060 (~R$ 2.500)
+- **Economia**: Não precisa de serviços cloud caros
+- **Privacidade**: Dados ficam na rede local
+- **Velocidade**: 10x mais rápido que CPU
+- **ROI**: Pago em 6-12 meses vs serviços cloud
 
-### Problemas Comuns Rápidos:
+## 🛠️ Manutenção
 
-#### Docker não funciona
-```bash
-# Verificar status
-sudo systemctl status docker
-
-# Reiniciar Docker
-sudo systemctl restart docker
-
-# Verificar permissões
-groups $USER
-```
-
-#### GPU não detectada
-```bash
-# Verificar drivers
-nvidia-smi
-
-# Verificar NVIDIA Docker
-docker run --rm --gpus all nvidia/cuda:11.0-base nvidia-smi
-```
-
-#### Porta ocupada
-```bash
-# Verificar porta
-sudo netstat -tlnp | grep :8080
-
-# Mudar porta no .env
-PORT=8081
-```
-
-#### Erro de comunicação com IA
-```bash
-# Baixar modelo (pode demorar 10-15 minutos)
-docker exec -it ia-local-ollama ollama pull llama2
-```
-
-### 📋 Checklist de Verificação
-
-Após a instalação, verifique se tudo está funcionando:
+### Logs
 
 ```bash
-echo "=== VERIFICAÇÃO COMPLETA ==="
-echo "Docker: $(docker --version)"
-echo "Docker Compose: $(docker-compose --version)"
-echo "GPU: $(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null || echo 'CPU apenas')"
-echo "Usuário no grupo docker: $(groups $USER | grep docker && echo 'SIM' || echo 'NÃO')"
-echo "Ollama API: $(curl -s http://localhost:11434/api/tags | grep -o '"models":\[.*\]' || echo 'NÃO RESPONDE')"
-echo "Containers ativos: $(docker ps --format 'table {{.Names}}\t{{.Status}}')"
+# Ver logs do chatbot
+docker-compose logs chatbot
+
+# Ver logs do Ollama
+docker-compose logs ollama
+
+# Logs de chat
+tail -f logs/chat_history.json
 ```
 
-## 🤝 Compartilhamento na Rede
+### Backup
 
-### Descobrir IP da máquina
 ```bash
-hostname -I
+# Backup dos modelos
+sudo docker run --rm -v ollama_data:/root/.ollama -v $(pwd):/backup alpine tar czf /backup/ollama-models-$(date +%Y%m%d).tar.gz -C /root/.ollama .
+
+# Backup de PDFs e cache
+tar czf backup-pdfs-$(date +%Y%m%d).tar.gz uploads/ cache/
 ```
 
-### Compartilhar com outros
-- **IP**: `192.168.1.100:8080` (exemplo)
-- **URL**: `http://192.168.1.100:8080`
+### Limpeza
 
-### Configurar firewall (se necessário)
 ```bash
-# Permitir porta 8080
-sudo ufw allow 8080
+# Limpar cache de PDFs
+rm -rf cache/*
+
+# Limpar uploads
+rm -rf uploads/*
+
+# Limpar logs antigos
+find logs/ -name "*.json" -mtime +30 -delete
 ```
 
-## 📚 Aprendizado
+## 🔍 Troubleshooting
 
-Este projeto demonstra:
-- **Containerização** com Docker
-- **IA Local** sem dependência externa
-- **Redes Locais** para compartilhamento
-- **Automação** com scripts bash
-- **GPU Computing** para aceleração
+### Problemas Comuns
 
-## 🔒 Privacidade
+1. **GPU não detectada**:
+   ```bash
+   nvidia-smi  # Verificar se GPU está funcionando
+   sudo docker run --rm --gpus all nvidia/cuda:11.0-base nvidia-smi
+   ```
 
-- ✅ **100% Local**: Dados não saem da sua rede
-- ✅ **Sem Telemetria**: Não coleta dados
-- ✅ **Open Source**: Código transparente
-- ✅ **Sem Conta**: Não precisa se cadastrar
+2. **Modelo não baixa**:
+   ```bash
+   # Verificar espaço em disco
+   df -h
+   
+   # Verificar logs do Ollama
+   docker-compose logs ollama
+   ```
+
+3. **PDF não processa**:
+   ```bash
+   # Verificar dependências
+   docker-compose exec chatbot pip list | grep -E "(PyPDF2|pdfplumber)"
+   
+   # Verificar logs
+   docker-compose logs chatbot
+   ```
+
+4. **Interface não carrega**:
+   ```bash
+   # Verificar se porta está livre
+   netstat -tlnp | grep 8080
+   
+   # Reiniciar serviços
+   docker-compose restart
+   ```
+
+### Logs Detalhados
+
+```bash
+# Ativar logs detalhados
+docker-compose up -d --build
+docker-compose logs -f chatbot
+```
+
+## 🤝 Contribuição
+
+Para contribuir com o projeto:
+
+1. Fork o repositório
+2. Crie uma branch para sua feature
+3. Faça commit das mudanças
+4. Abra um Pull Request
+
+## 📄 Licença
+
+Este projeto está licenciado sob a licença MIT - veja o arquivo [LICENSE](LICENSE) para detalhes.
+
+## 🙏 Agradecimentos
+
+- **Ollama**: Framework de IA local
+- **Flask**: Framework web
+- **NVIDIA**: Suporte a GPU
+- **Comunidade Portal Sem Porteiras**: Testes e feedback
 
 ## 📞 Suporte
 
-Para problemas ou dúvidas:
-1. Verificar logs: `docker-compose logs -f`
-2. Reiniciar: `docker-compose restart`
-3. Reinstalar: `./start.sh --reset`
+Para suporte técnico ou dúvidas:
+
+- **Email**: suporte@portalsemporteiras.org
+- **Telegram**: @portalsemporteiras
+- **Issues**: GitHub Issues
 
 ---
 
-**Desenvolvido para Redes Comunitárias** 🌐🤖 
+**Desenvolvido com ❤️ para a Rede Comunitária Portal Sem Porteiras** 

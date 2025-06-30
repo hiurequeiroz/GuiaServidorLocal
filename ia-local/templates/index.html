@@ -31,46 +31,83 @@
                 <i class="fas fa-microchip"></i>
                 <span id="model-info">Modelo: Carregando...</span>
             </div>
+            <div class="status-item" id="pdf-status" style="display: none;">
+                <i class="fas fa-file-pdf"></i>
+                <span id="pdf-info">PDF: Nenhum ativo</span>
+            </div>
         </div>
 
-        <!-- Chat Container -->
-        <div class="chat-container">
-            <!-- Chat Messages -->
-            <div class="chat-messages" id="chat-messages">
-                <div class="message system">
-                    <div class="message-content">
-                        <i class="fas fa-info-circle"></i>
-                        <p>Bem-vindo ao Chatbot de IA Local da <strong>Rede Comunitária Portal Sem Porteiras</strong>! 🤖</p>
-                        <p>Este é um assistente de IA que roda localmente na nossa rede comunitária, sem precisar de internet externa.</p>
-                        <p>Digite sua mensagem abaixo e comece a conversar!</p>
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Chat Container -->
+            <div class="chat-container">
+                <!-- Chat Messages -->
+                <div class="chat-messages" id="chat-messages">
+                    <div class="message system">
+                        <div class="message-content">
+                            <i class="fas fa-info-circle"></i>
+                            <p>Bem-vindo ao Chatbot de IA Local da <strong>Rede Comunitária Portal Sem Porteiras</strong>! 🤖</p>
+                            <p>Este é um assistente de IA que roda localmente na nossa rede comunitária, sem precisar de internet externa.</p>
+                            <p>Você pode fazer upload de PDFs para que a IA responda baseada no conteúdo dos documentos!</p>
+                            <p>Digite sua mensagem abaixo e comece a conversar!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input Area -->
+                <div class="input-area">
+                    <div class="input-container">
+                        <textarea 
+                            id="message-input" 
+                            placeholder="Digite sua mensagem aqui..."
+                            rows="3"
+                        ></textarea>
+                        <button id="send-button" class="send-button">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Model Selection -->
+                    <div class="model-selection">
+                        <label for="model-select">Modelo de IA:</label>
+                        <select id="model-select">
+                            <option value="llama2">LLaMA 2 (Padrão)</option>
+                            <option value="mistral">Mistral</option>
+                            <option value="codellama">Code Llama</option>
+                        </select>
+                        <button id="download-model" class="download-button">
+                            <i class="fas fa-download"></i> Baixar Modelo
+                        </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Input Area -->
-            <div class="input-area">
-                <div class="input-container">
-                    <textarea 
-                        id="message-input" 
-                        placeholder="Digite sua mensagem aqui..."
-                        rows="3"
-                    ></textarea>
-                    <button id="send-button" class="send-button">
-                        <i class="fas fa-paper-plane"></i>
+            <!-- PDF Panel -->
+            <div class="pdf-panel">
+                <div class="pdf-header">
+                    <h3><i class="fas fa-file-pdf"></i> Documentos PDF</h3>
+                    <button id="upload-pdf-btn" class="upload-button">
+                        <i class="fas fa-upload"></i> Upload PDF
                     </button>
                 </div>
-                
-                <!-- Model Selection -->
-                <div class="model-selection">
-                    <label for="model-select">Modelo de IA:</label>
-                    <select id="model-select">
-                        <option value="llama2">LLaMA 2 (Padrão)</option>
-                        <option value="mistral">Mistral</option>
-                        <option value="codellama">Code Llama</option>
-                    </select>
-                    <button id="download-model" class="download-button">
-                        <i class="fas fa-download"></i> Baixar Modelo
-                    </button>
+
+                <!-- Upload Area -->
+                <div id="upload-area" class="upload-area" style="display: none;">
+                    <div class="upload-content">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>Arraste um PDF aqui ou clique para selecionar</p>
+                        <input type="file" id="pdf-file-input" accept=".pdf" style="display: none;">
+                        <button id="select-file-btn" class="select-file-btn">Selecionar Arquivo</button>
+                    </div>
+                </div>
+
+                <!-- PDF List -->
+                <div class="pdf-list" id="pdf-list">
+                    <div class="pdf-empty">
+                        <i class="fas fa-file-pdf"></i>
+                        <p>Nenhum PDF carregado</p>
+                        <p>Faça upload de um PDF para começar</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -85,6 +122,9 @@
                 <button id="export-chat" class="sidebar-button">
                     <i class="fas fa-download"></i> Exportar Histórico
                 </button>
+                <button id="clear-pdfs" class="sidebar-button">
+                    <i class="fas fa-trash"></i> Limpar PDFs
+                </button>
             </div>
 
             <div class="sidebar-section">
@@ -94,6 +134,7 @@
                     <li><strong>Ollama:</strong> Framework de IA local</li>
                     <li><strong>Flask:</strong> Servidor web</li>
                     <li><strong>GPU:</strong> Aceleração por hardware</li>
+                    <li><strong>PDF:</strong> Processamento de documentos</li>
                 </ul>
             </div>
 
@@ -104,6 +145,7 @@
                     <li>Use português para melhor compreensão</li>
                     <li>O modelo pode demorar alguns segundos para responder</li>
                     <li>Dados ficam apenas na rede local</li>
+                    <li>Upload PDFs para contexto específico</li>
                 </ul>
             </div>
         </div>
@@ -114,6 +156,32 @@
         <div class="loading-content">
             <i class="fas fa-spinner fa-spin"></i>
             <p>Processando sua mensagem...</p>
+        </div>
+    </div>
+
+    <!-- PDF Upload Modal -->
+    <div id="pdf-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-file-pdf"></i> Upload de PDF</h3>
+                <button id="close-modal" class="close-button">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="upload-zone" id="upload-zone">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Arraste um PDF aqui ou clique para selecionar</p>
+                    <input type="file" id="modal-pdf-input" accept=".pdf" style="display: none;">
+                    <button id="modal-select-btn" class="select-file-btn">Selecionar PDF</button>
+                </div>
+                <div id="upload-progress" class="upload-progress" style="display: none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                    <p id="progress-text">Processando PDF...</p>
+                </div>
+            </div>
         </div>
     </div>
 
