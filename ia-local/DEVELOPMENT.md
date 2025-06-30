@@ -56,6 +56,53 @@ EOF
 python app.py
 ```
 
+## 🐳 Deploy Inteligente com Docker
+
+### Deploy Automático
+
+```bash
+# Deploy de produção (com rebuild se necessário)
+./deploy.sh
+
+# Deploy de desenvolvimento (com volumes)
+./deploy.sh development
+
+# Atualização inteligente (detecta mudanças)
+./update.sh
+```
+
+### Configurações de Ambiente
+
+- **Produção**: `docker-compose.yml` - Build completo, sem volumes
+- **Desenvolvimento**: `docker-compose.dev.yml` - Volumes para código, rebuild apenas quando necessário
+
+### Volumes para Desenvolvimento
+
+O ambiente de desenvolvimento usa volumes para:
+- **Código**: `./app.py:/app/app.py` - Atualizações instantâneas
+- **Templates**: `./templates:/app/templates` - Mudanças em HTML
+- **Estáticos**: `./static:/app/static` - Mudanças em CSS/JS
+- **Dados**: `./uploads:/app/uploads` - PDFs persistentes
+
+### Comandos de Deploy
+
+```bash
+# Deploy completo (produção)
+./deploy.sh
+
+# Deploy de desenvolvimento
+./deploy.sh development
+
+# Atualização rápida (sem rebuild)
+./update.sh
+
+# Ver logs
+docker-compose logs -f chatbot
+
+# Restart apenas do chatbot
+docker-compose restart chatbot
+```
+
 ## 📁 Estrutura do Projeto
 
 ```
@@ -65,9 +112,15 @@ ia-local/
 ├── requirements.txt       # Dependências Python
 ├── setup_dev.sh          # Script de setup
 ├── run_dev.sh            # Script de execução
+├── deploy.sh             # Script de deploy inteligente
+├── update.sh             # Script de atualização
 ├── test_pdf.py           # Testes de PDF
 ├── .env                  # Configurações (criado automaticamente)
 ├── .gitignore           # Arquivos ignorados pelo Git
+├── docker-compose.yml    # Docker Compose produção
+├── docker-compose.dev.yml # Docker Compose desenvolvimento
+├── Dockerfile            # Dockerfile produção
+├── Dockerfile.dev        # Dockerfile desenvolvimento
 ├── static/              # Arquivos estáticos
 │   ├── css/
 │   ├── js/
@@ -244,6 +297,23 @@ pip install PyPDF2 pdfplumber
 
 # Problema: Cache corrompido
 rm -rf cache/*
+```
+
+### Docker
+
+```bash
+# Problema: Container não inicia
+docker-compose down
+docker container prune -f
+docker-compose up -d --build
+
+# Problema: Volumes não funcionam
+docker-compose -f docker-compose.dev.yml up -d
+
+# Problema: Porta ocupada
+docker-compose down
+sudo systemctl stop tomcat9  # se necessário
+docker-compose up -d
 ```
 
 ## 📝 Desenvolvimento

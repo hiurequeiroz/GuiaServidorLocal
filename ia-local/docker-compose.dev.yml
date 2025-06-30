@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  chatbot:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8080:8080"
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+      - MODEL_NAME=llama2
+      - FLASK_ENV=development
+      - FLASK_DEBUG=True
+    volumes:
+      # Volumes para desenvolvimento - código atualizado sem rebuild
+      - ./app.py:/app/app.py
+      - ./pdf_processor.py:/app/pdf_processor.py
+      - ./templates:/app/templates
+      - ./static:/app/static
+      - ./test_pdf.py:/app/test_pdf.py
+      - ./requirements.txt:/app/requirements.txt
+      # Volumes para dados persistentes
+      - ./uploads:/app/uploads
+      - ./cache:/app/cache
+      - ./logs:/app/logs
+    depends_on:
+      - ollama
+    restart: unless-stopped
+    # Configuração para desenvolvimento com reload automático
+    command: python app.py
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+
+volumes:
+  ollama_data: 

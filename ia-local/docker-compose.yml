@@ -32,10 +32,19 @@ services:
       - OLLAMA_HOST=http://ollama:11434
       - MODEL_NAME=llama2
     volumes:
+      # Volumes para desenvolvimento - código atualizado sem rebuild
+      - ./app.py:/app/app.py
+      - ./pdf_processor.py:/app/pdf_processor.py
+      - ./templates:/app/templates
+      - ./static:/app/static
+      - ./test_pdf.py:/app/test_pdf.py
+      # Volumes para dados persistentes
       - ./uploads:/app/uploads
       - ./cache:/app/cache
       - ./logs:/app/logs
     restart: unless-stopped
+    # Configuração para desenvolvimento
+    command: python app.py
 
 volumes:
   ollama_data:
