@@ -1,167 +1,221 @@
 # 🤖 Chatbot de IA Local - Rede Comunitária
 
-## 📚 Sobre o Projeto
+Um chatbot de inteligência artificial que roda localmente na sua rede, permitindo que membros da comunidade conversem com IA sem depender de serviços externos.
 
-Este é um **chatbot de IA local** que roda em um computador com placa de vídeo RTX 4060 dentro da rede comunitária. Ele permite que os membros da comunidade tenham acesso a um assistente de IA sem precisar de internet externa.
+## 🎯 Características
 
-## 🎯 Objetivo Educacional
+- **Totalmente Local**: Roda na sua rede, sem internet
+- **GPU NVIDIA**: Suporte para aceleração por GPU (RTX 4060+)
+- **Docker**: Fácil instalação e deploy
+- **Interface Web**: Interface amigável via navegador
+- **Compartilhável**: Outros membros da rede podem acessar
 
-- **Democratizar IA**: Mostrar que IA pode rodar localmente
-- **Educação Tecnológica**: Ensinar sobre modelos de linguagem
-- **Acesso Comunitário**: IA disponível para toda a comunidade
-- **Sustentabilidade**: Funciona sem dependência de serviços externos
+## 🚀 Instalação Rápida (Debian 12)
 
-## 🚀 Como Funciona
-
-### Opção 1: Docker (Recomendado)
+### Opção 1: Instalação Automática (Recomendado)
 ```bash
-# Clone o projeto
+# Baixar o script de instalação
+wget https://raw.githubusercontent.com/hiurequeiroz/GuiaServidorLocal/main/ia-local/install-debian.sh
+chmod +x install-debian.sh
+
+# Executar instalação completa
+./install-debian.sh
+```
+
+### Opção 2: Instalação Manual
+
+#### 1. Atualizar sistema
+```bash
+sudo apt update && sudo apt upgrade -y
+```
+
+#### 2. Instalar Docker
+```bash
+# Adicionar repositório oficial
+curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# Instalar Docker
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+# Configurar usuário
+sudo usermod -aG docker $USER
+sudo systemctl start docker
+sudo systemctl enable docker
+```
+
+#### 3. Instalar Docker Compose
+```bash
+sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+sudo ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
+```
+
+#### 4. Instalar drivers NVIDIA (se tiver GPU)
+```bash
+# Verificar GPU
+lspci | grep -i nvidia
+
+# Se tiver GPU, instalar drivers
+sudo apt install -y nvidia-driver firmware-misc-nonfree
+
+# NVIDIA Container Toolkit
+curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+  sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+  sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+
+sudo apt update
+sudo apt install -y nvidia-container-toolkit
+sudo systemctl restart docker
+```
+
+#### 5. Aplicar mudanças
+```bash
+newgrp docker
+```
+
+#### 6. Baixar e executar
+```bash
 git clone https://github.com/hiurequeiroz/GuiaServidorLocal.git
 cd GuiaServidorLocal/ia-local
-
-# Execute com Docker
-docker-compose up -d
-
-# Acesse no navegador
-http://IP_DO_COMPUTADOR:8080
+chmod +x start.sh
+./start.sh
 ```
 
-### Opção 2: Instalação Local
+## 🎮 Uso
+
+### Iniciar o chatbot
 ```bash
-# Instale as dependências
-pip install -r requirements.txt
-
-# Execute o servidor
-python app.py
-
-# Acesse no navegador
-http://IP_DO_COMPUTADOR:8080
+./start.sh
 ```
 
-## 🛠️ Tecnologias
+### Acessar via navegador
+- **Local**: http://localhost:8080
+- **Rede**: http://SEU_IP:8080
 
-- **Modelo de IA**: Ollama (LLaMA 2, Mistral, ou outros)
-- **Interface Web**: Flask + HTML/CSS/JavaScript
-- **Containerização**: Docker + Docker Compose
-- **GPU**: CUDA para aceleração na RTX 4060
+### Comandos úteis
+```bash
+# Ver status
+docker-compose ps
 
-## 📁 Estrutura do Projeto
+# Ver logs
+docker-compose logs -f
 
-```
-ia-local/
-├── app.py              # Servidor Flask principal
-├── templates/          # Templates HTML
-├── static/            # CSS, JS e assets
-├── models/            # Modelos de IA (se necessário)
-├── docker-compose.yml # Configuração Docker
-├── Dockerfile         # Imagem Docker
-├── requirements.txt   # Dependências Python
-└── README.md         # Esta documentação
+# Parar
+docker-compose down
+
+# Reiniciar
+docker-compose restart
 ```
 
-## 🎓 Aplicação Educacional
+## 🔧 Configuração
 
-### Para Professores
-- **Aula 1**: "O que é IA e como funciona?"
-- **Aula 2**: "Como rodar IA localmente?"
-- **Aula 3**: "Interface web para IA"
-- **Aula 4**: "Deploy e manutenção"
+### Variáveis de Ambiente
+Edite o arquivo `.env` para personalizar:
 
-### Para Alunos
-- **Módulo 1**: Conceitos básicos de IA
-- **Módulo 2**: Modelos de linguagem
-- **Módulo 3**: Interface web para IA
-- **Módulo 4**: Manutenção de sistemas de IA
+```env
+# Modelo de IA (opções: llama2, codellama, mistral)
+AI_MODEL=llama2
 
-## 🌍 Impacto Comunitário
+# Porta do servidor
+PORT=8080
 
-### Benefícios
-- **Acesso à IA**: Comunidade tem IA disponível 24/7
-- **Educação**: Jovens aprendem sobre IA na prática
-- **Independência**: Não depende de serviços externos
-- **Inovação**: Base para novos projetos de IA
+# Configurações de GPU
+NVIDIA_VISIBLE_DEVICES=all
+```
 
-### Casos de Uso
-- **Ajuda com estudos**: Explicações e resumos
-- **Suporte técnico**: Dúvidas sobre tecnologia
-- **Criatividade**: Geração de ideias e conteúdo
-- **Aprendizado**: Tutoria personalizada
+### Modelos Disponíveis
+- **llama2**: Modelo geral (recomendado)
+- **codellama**: Especializado em código
+- **mistral**: Modelo rápido e eficiente
 
-## 🔧 Configuração Técnica
+## 🖥️ Requisitos
 
-### Requisitos Mínimos
-- **GPU**: RTX 4060 (8GB VRAM)
-- **RAM**: 16GB
-- **Armazenamento**: 50GB livre
-- **Sistema**: Linux (recomendado) ou Windows
+### Mínimos
+- **CPU**: 4 cores
+- **RAM**: 8GB
+- **Armazenamento**: 10GB livres
+- **Sistema**: Debian 12 ou Ubuntu 22.04
 
-### Performance Esperada
-- **Tempo de resposta**: 2-5 segundos
-- **Concorrência**: 5-10 usuários simultâneos
-- **Qualidade**: Similar a ChatGPT básico
+### Recomendados (para GPU)
+- **GPU**: NVIDIA RTX 4060 ou superior
+- **RAM**: 16GB+
+- **Armazenamento**: SSD 20GB+
 
-## 📖 Guias de Aprendizado
+## 🐛 Solução de Problemas
 
-### Para Iniciantes
-1. Execute com Docker
-2. Teste o chatbot
-3. Entenda como funciona
-4. Explore as configurações
+### Docker não funciona
+```bash
+# Verificar status
+sudo systemctl status docker
 
-### Para Intermediários
-1. Modifique a interface
-2. Adicione novos modelos
-3. Personalize as respostas
-4. Otimize a performance
+# Reiniciar Docker
+sudo systemctl restart docker
 
-### Para Avançados
-1. Treine modelos customizados
-2. Adicione funcionalidades
-3. Integre com outros sistemas
-4. Otimize para GPU
+# Verificar permissões
+groups $USER
+```
 
-## 🤝 Contribuição
+### GPU não detectada
+```bash
+# Verificar drivers
+nvidia-smi
 
-### Como Contribuir
-1. **Fork** o projeto
-2. **Clone** para sua máquina
-3. **Experimente** diferentes modelos
-4. **Adicione** novas funcionalidades
-5. **Documente** suas mudanças
-6. **Compartilhe** com a comunidade
+# Verificar NVIDIA Docker
+docker run --rm --gpus all nvidia/cuda:11.0-base nvidia-smi
+```
 
-### Ideias para Melhorias
-- Interface em português
-- Modelos específicos para educação
-- Integração com outros serviços locais
-- Sistema de feedback e avaliação
-- Múltiplos modelos disponíveis
+### Porta ocupada
+```bash
+# Verificar porta
+sudo netstat -tlnp | grep :8080
 
-## ⚠️ Considerações Importantes
+# Mudar porta no .env
+PORT=8081
+```
 
-### Limitações
-- **Recursos**: Consome GPU e RAM
-- **Qualidade**: Pode não ser tão boa quanto serviços comerciais
-- **Manutenção**: Requer conhecimento técnico
-- **Atualizações**: Modelos precisam ser atualizados manualmente
+## 🤝 Compartilhamento na Rede
 
-### Segurança
-- **Dados**: Conversas ficam apenas na rede local
-- **Privacidade**: Não há coleta de dados externa
-- **Controle**: Comunidade tem controle total
-- **Transparência**: Código aberto e auditável
+### Descobrir IP da máquina
+```bash
+hostname -I
+```
 
-## 🎉 Conclusão
+### Compartilhar com outros
+- **IP**: `192.168.1.100:8080` (exemplo)
+- **URL**: `http://192.168.1.100:8080`
 
-Este chatbot de IA local demonstra que **tecnologia avançada pode ser democrática e comunitária**. Ao rodar IA localmente, estamos:
+### Configurar firewall (se necessário)
+```bash
+# Permitir porta 8080
+sudo ufw allow 8080
+```
 
-- **Democratizando** o acesso à IA
-- **Educando** sobre tecnologia
-- **Empoderando** a comunidade
-- **Criando** independência tecnológica
+## 📚 Aprendizado
 
-**O futuro da IA é local, comunitário e educacional! 🤖✨**
+Este projeto demonstra:
+- **Containerização** com Docker
+- **IA Local** sem dependência externa
+- **Redes Locais** para compartilhamento
+- **Automação** com scripts bash
+- **GPU Computing** para aceleração
+
+## 🔒 Privacidade
+
+- ✅ **100% Local**: Dados não saem da sua rede
+- ✅ **Sem Telemetria**: Não coleta dados
+- ✅ **Open Source**: Código transparente
+- ✅ **Sem Conta**: Não precisa se cadastrar
+
+## 📞 Suporte
+
+Para problemas ou dúvidas:
+1. Verificar logs: `docker-compose logs -f`
+2. Reiniciar: `docker-compose restart`
+3. Reinstalar: `./start.sh --reset`
 
 ---
 
-*Desenvolvido para fins educacionais e comunitários. Use, aprenda, compartilhe e contribua!* 
+**Desenvolvido para Redes Comunitárias** 🌐🤖 
