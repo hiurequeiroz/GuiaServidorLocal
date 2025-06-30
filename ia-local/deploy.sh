@@ -48,6 +48,30 @@ fi
 
 echo "🔗 Servidor Ollama configurado: $OLLAMA_HOST"
 
+# Verificar se container Ollama está rodando
+OLLAMA_RUNNING=false
+if docker ps --format "table {{.Names}}" | grep -q "^ollama$"; then
+    echo "✅ Container Ollama já está rodando"
+    OLLAMA_RUNNING=true
+else
+    echo "⚠️  Container Ollama não está rodando"
+    # Verificar se há volume do Ollama
+    if docker volume ls | grep -q "ia-local_ollama_data"; then
+        echo "📦 Volume do Ollama encontrado, restaurando container..."
+        docker run -d \
+          --name ollama \
+          --restart unless-stopped \
+          -v ia-local_ollama_data:/root/.ollama \
+          -p 11434:11434 \
+          --gpus all \
+          ollama/ollama:latest
+        echo "✅ Container Ollama restaurado"
+        OLLAMA_RUNNING=true
+    else
+        echo "⚠️  Volume do Ollama não encontrado"
+    fi
+fi
+
 # Verificar conectividade com servidor Ollama
 echo "🔍 Verificando conectividade com servidor Ollama..."
 if curl -s "$OLLAMA_HOST/api/tags" > /dev/null 2>&1; then
@@ -58,13 +82,19 @@ else
     echo "   Continuando deploy da aplicação web..."
 fi
 
-# Parar containers existentes e limpar órfãos
-echo "🛑 Parando containers existentes..."
-docker-compose down --remove-orphans 2>/dev/null || true
+# Parar apenas containers da aplicação (não o Ollama)
+echo "🛑 Parando containers da aplicação..."
+docker-compose down 2>/dev/null || true
 
-# Limpar containers órfãos
-echo "🧹 Limpando containers órfãos..."
-docker container prune -f 2>/dev/null || true
+# Limpar containers órfãos (exceto Ollama)
+echo "🧹 Limpando containers órfãos (preservando Ollama)..."
+if [ "$OLLAMA_RUNNING" = true ]; then
+    # Se Ollama está rodando, não usar --remove-orphans
+    echo "🔒 Preservando container Ollama ativo"
+else
+    # Se Ollama não está rodando, pode limpar órfãos
+    docker container prune -f 2>/dev/null || true
+fi
 
 # Rebuild da imagem para produção
 echo "🔨 Rebuild da imagem Docker para produção..."
@@ -104,10 +134,10 @@ echo "💡 Para desenvolvimento, use: ./deploy-dev.sh"
 # Mostrar informações úteis
 echo ""
 echo "🔧 Comandos úteis:"
-echo "   - Ver logs: docker-compose -f $COMPOSE_FILE logs -f"
-echo "   - Parar: docker-compose -f $COMPOSE_FILE down"
-echo "   - Restart: docker-compose -f $COMPOSE_FILE restart"
-echo "   - Status: docker-compose -f $COMPOSE_FILE ps"
+echo "   - Ver logs: docker-compose logs -f"
+echo "   - Parar: docker-compose down"
+echo "   - Restart: docker-compose restart"
+echo "   - Status: docker-compose ps"
 echo ""
 echo "📚 Documentação:"
 echo "   - README.md: Documentação geral"

@@ -7,6 +7,8 @@ services:
     environment:
       - OLLAMA_HOST=${OLLAMA_HOST}
       - MODEL_NAME=llama2
+      - FLASK_ENV=development
+      - FLASK_DEBUG=True
     volumes:
       # Volumes para desenvolvimento - código atualizado sem rebuild
       - ./app.py:/app/app.py
