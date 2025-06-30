@@ -1,128 +1,106 @@
 #!/bin/bash
 
-# Script de Deploy Inteligente - Chatbot IA Local
-# Rede Comunitária Portal Sem Porteiras
+# Script de Deploy Inteligente para Chatbot IA Local
+# Portal Sem Porteiras - Rede Comunitária
+# Usa servidor Ollama remoto em 10.208.173.206
 
 set -e
 
-# Configurações
-ENVIRONMENT=${1:-production}  # production ou development
-COMPOSE_FILE="docker-compose.yml"
-COMPOSE_DEV_FILE="docker-compose.dev.yml"
-
-echo "🚀 Deploy do Chatbot IA Local"
-echo "Rede Comunitária Portal Sem Porteiras"
-echo "======================================"
-echo "🌍 Ambiente: $ENVIRONMENT"
+echo "🤖 Deploy Inteligente - Chatbot IA Local"
+echo "🌐 Portal Sem Porteiras - Rede Comunitária"
+echo "🔗 Servidor Ollama: 10.208.173.206:11434"
 echo ""
 
-# Verificar se estamos no diretório correto
-if [ ! -f "docker-compose.yml" ]; then
-    echo "❌ Execute este script no diretório ia-local/"
-    exit 1
+# Verificar se Docker está rodando
+if ! docker info > /dev/null 2>&1; then
+    echo "❌ Docker não está rodando. Iniciando..."
+    sudo systemctl start docker
+    sleep 3
 fi
 
-# Escolher arquivo de compose baseado no ambiente
-if [ "$ENVIRONMENT" = "development" ]; then
-    if [ -f "$COMPOSE_DEV_FILE" ]; then
-        COMPOSE_FILE="$COMPOSE_DEV_FILE"
-        echo "🔧 Usando configuração de desenvolvimento"
-    else
-        echo "⚠️  Arquivo de desenvolvimento não encontrado, usando produção"
+# Verificar conectividade com servidor Ollama
+echo "🔍 Verificando conectividade com servidor Ollama..."
+if curl -s http://10.208.173.206:11434/api/tags > /dev/null 2>&1; then
+    echo "✅ Servidor Ollama acessível"
+else
+    echo "⚠️  Aviso: Servidor Ollama não respondeu. Verifique se está rodando em 10.208.173.206:11434"
+    echo "   Continuando deploy da aplicação web..."
+fi
+
+# Verificar se há mudanças no código
+echo "🔍 Verificando mudanças no código..."
+
+# Lista de arquivos para monitorar
+FILES_TO_WATCH=(
+    "app.py"
+    "pdf_processor.py"
+    "templates/"
+    "static/"
+    "requirements.txt"
+    "Dockerfile"
+    "Dockerfile.dev"
+    "docker-compose.yml"
+    "docker-compose.dev.yml"
+)
+
+# Verificar se há mudanças
+HAS_CHANGES=false
+for file in "${FILES_TO_WATCH[@]}"; do
+    if [ -f "$file" ] || [ -d "$file" ]; then
+        if [ "$file" -nt ".last_deploy" ] 2>/dev/null; then
+            echo "📝 Mudanças detectadas em: $file"
+            HAS_CHANGES=true
+        fi
     fi
+done
+
+if [ "$HAS_CHANGES" = true ]; then
+    echo "🔄 Mudanças detectadas - Rebuild necessário"
+    echo ""
+    
+    # Parar containers existentes
+    echo "🛑 Parando containers existentes..."
+    docker-compose down 2>/dev/null || true
+    
+    # Rebuild da imagem
+    echo "🔨 Rebuild da imagem Docker..."
+    docker-compose build --no-cache
+    
+    # Atualizar timestamp
+    touch .last_deploy
+    echo "✅ Timestamp de deploy atualizado"
 else
-    echo "🏭 Usando configuração de produção"
+    echo "✅ Nenhuma mudança detectada - Iniciando containers existentes"
 fi
 
-# Verificar se há mudanças que precisam de rebuild
-echo "📋 Verificando mudanças..."
-NEEDS_REBUILD=false
-
-# Verificar se requirements.txt mudou
-if git diff --quiet HEAD~1 HEAD -- requirements.txt 2>/dev/null; then
-    echo "✅ Dependências não mudaram"
-else
-    echo "📦 Dependências mudaram - rebuild necessário"
-    NEEDS_REBUILD=true
-fi
-
-# Verificar se Dockerfile mudou
-if git diff --quiet HEAD~1 HEAD -- Dockerfile 2>/dev/null; then
-    echo "✅ Dockerfile não mudou"
-else
-    echo "🐳 Dockerfile mudou - rebuild necessário"
-    NEEDS_REBUILD=true
-fi
-
-# Verificar se Dockerfile.dev mudou (se existir)
-if [ -f "Dockerfile.dev" ] && ! git diff --quiet HEAD~1 HEAD -- Dockerfile.dev 2>/dev/null; then
-    echo "🐳 Dockerfile.dev mudou - rebuild necessário"
-    NEEDS_REBUILD=true
-fi
-
+# Iniciar containers
 echo ""
-echo "🎯 Rebuild necessário: $NEEDS_REBUILD"
+echo "🚀 Iniciando containers..."
+docker-compose up -d
 
-# Parar containers existentes
-echo "⏹️  Parando containers existentes..."
-docker-compose -f "$COMPOSE_FILE" down
-
-# Remover containers órfãos
-echo "🧹 Removendo containers órfãos..."
-docker container prune -f
-
-# Subir containers
-if [ "$NEEDS_REBUILD" = true ]; then
-    echo "🔨 Fazendo rebuild completo..."
-    docker-compose -f "$COMPOSE_FILE" up -d --build
-else
-    echo "⚡ Subindo sem rebuild..."
-    docker-compose -f "$COMPOSE_FILE" up -d
-fi
-
-# Aguardar serviços iniciarem
-echo "⏳ Aguardando serviços iniciarem..."
-sleep 10
+# Aguardar inicialização
+echo "⏳ Aguardando inicialização..."
+sleep 5
 
 # Verificar status
-echo "📊 Verificando status..."
-if docker-compose -f "$COMPOSE_FILE" ps | grep -q "Up"; then
-    echo "✅ Serviços estão rodando!"
-    
-    # Testar API
-    echo "🔍 Testando API..."
-    for i in {1..5}; do
-        if curl -s http://localhost:8080/api/health > /dev/null 2>&1; then
-            echo "✅ API está respondendo!"
-            break
-        else
-            echo "⏳ Tentativa $i/5 - Aguardando API..."
-            sleep 2
-        fi
-    done
-    
-    if [ $i -eq 5 ]; then
-        echo "⚠️  API não está respondendo ainda..."
-        echo "💡 Verifique os logs: docker-compose -f $COMPOSE_FILE logs chatbot"
-    fi
-    
-    echo ""
-    echo "🌐 Acesse: http://localhost:8080"
-    echo "📋 Status: docker-compose -f $COMPOSE_FILE ps"
-    echo "📋 Logs: docker-compose -f $COMPOSE_FILE logs -f"
-    
-else
-    echo "❌ Alguns serviços não estão rodando"
-    echo "📋 Status dos containers:"
-    docker-compose -f "$COMPOSE_FILE" ps
-    echo ""
-    echo "📋 Logs de erro:"
-    docker-compose -f "$COMPOSE_FILE" logs --tail=20
-fi
+echo ""
+echo "📊 Status dos containers:"
+docker-compose ps
+
+# Verificar logs
+echo ""
+echo "📋 Últimos logs do chatbot:"
+docker-compose logs --tail=10 chatbot
 
 echo ""
 echo "🎉 Deploy concluído!"
-echo "======================================"
+echo "🌐 Acesse: http://localhost:8080"
+echo "🔗 Servidor Ollama: http://10.208.173.206:11434"
+echo ""
+echo "📝 Comandos úteis:"
+echo "   docker-compose logs -f chatbot    # Ver logs em tempo real"
+echo "   docker-compose down               # Parar containers"
+echo "   docker-compose restart chatbot    # Reiniciar apenas o chatbot"
 
 # Mostrar informações úteis
 echo ""

@@ -1,78 +1,61 @@
 #!/bin/bash
 
-# Script para executar aplicação em modo de desenvolvimento
-# Chatbot IA Local - Rede Comunitária Portal Sem Porteiras
+# Script de Desenvolvimento para Chatbot IA Local
+# Portal Sem Porteiras - Rede Comunitária
+# Usa servidor Ollama remoto em 10.208.173.206
 
-echo "🤖 Iniciando Chatbot IA Local em modo de desenvolvimento..."
-echo "Rede Comunitária Portal Sem Porteiras"
-echo "======================================"
+set -e
 
-# Verificar se ambiente virtual existe
-if [ ! -d "venv" ]; then
-    echo "❌ Ambiente virtual não encontrado!"
-    echo "Execute primeiro: ./setup_dev.sh"
+echo "🔧 Modo Desenvolvimento - Chatbot IA Local"
+echo "🌐 Portal Sem Porteiras - Rede Comunitária"
+echo "🔗 Servidor Ollama: 10.208.173.206:11434"
+echo ""
+
+# Verificar se estamos no diretório correto
+if [ ! -f "app.py" ]; then
+    echo "❌ Execute este script no diretório ia-local/"
     exit 1
 fi
 
-# Verificar se arquivo .env existe
-if [ ! -f ".env" ]; then
-    echo "❌ Arquivo .env não encontrado!"
-    echo "Execute primeiro: ./setup_dev.sh"
-    exit 1
+# Verificar se o ambiente virtual existe
+if [ ! -d "venv" ]; then
+    echo "🔧 Criando ambiente virtual..."
+    python3 -m venv venv
 fi
 
 # Ativar ambiente virtual
-echo "🔌 Ativando ambiente virtual..."
+echo "🔧 Ativando ambiente virtual..."
 source venv/bin/activate
 
-# Verificar se dependências estão instaladas
-echo "📦 Verificando dependências..."
-if ! python -c "import flask, requests, PyPDF2, pdfplumber" 2>/dev/null; then
-    echo "❌ Dependências não encontradas!"
-    echo "Execute: pip install -r requirements.txt"
-    exit 1
-fi
+# Instalar/atualizar dependências
+echo "📦 Instalando dependências..."
+pip install -r requirements.txt
 
-# Verificar se Ollama está rodando
-echo "🤖 Verificando Ollama..."
-if ! curl -s http://localhost:11434/api/tags > /dev/null 2>&1; then
-    echo "⚠️  Ollama não está rodando ou não está acessível"
-    echo "   Inicie com: ollama serve"
-    echo "   Ou instale com: curl -fsSL https://ollama.ai/install.sh | sh"
-    echo ""
-    echo "💡 Continuando sem Ollama (funcionalidade limitada)..."
-    OLLAMA_RUNNING=false
+# Verificar conectividade com servidor Ollama
+echo "🔍 Verificando conectividade com servidor Ollama..."
+if curl -s http://10.208.173.206:11434/api/tags > /dev/null 2>&1; then
+    echo "✅ Servidor Ollama acessível"
 else
-    echo "✅ Ollama está rodando"
-    OLLAMA_RUNNING=true
+    echo "⚠️  Aviso: Servidor Ollama não respondeu. Verifique se está rodando em 10.208.173.206:11434"
+    echo "   Continuando inicialização da aplicação..."
 fi
 
-# Verificar se diretórios existem
-echo "📁 Verificando diretórios..."
+# Configurar variáveis de ambiente
+export OLLAMA_HOST="http://10.208.173.206:11434"
+export MODEL_NAME="llama2"
+export FLASK_ENV="development"
+export FLASK_DEBUG="True"
+
+# Criar diretórios necessários
 mkdir -p uploads cache logs
 
-# Mostrar informações do sistema
 echo ""
-echo "📊 Informações do Sistema:"
-echo "   Python: $(python --version)"
-echo "   Flask: $(python -c "import flask; print(flask.__version__)")"
-echo "   Ollama: $([ "$OLLAMA_RUNNING" = true ] && echo "Rodando" || echo "Não disponível")"
-echo "   Diretório: $(pwd)"
-echo "   Porta: 8080"
+echo "🚀 Iniciando aplicação em modo desenvolvimento..."
+echo "🌐 Acesse: http://localhost:8080"
+echo "🔗 Servidor Ollama: http://10.208.173.206:11434"
+echo ""
+echo "📝 Para parar: Ctrl+C"
 echo ""
 
-# Verificar se porta está livre
-if netstat -tlnp 2>/dev/null | grep -q ":8080 "; then
-    echo "⚠️  Porta 8080 já está em uso!"
-    echo "   Verifique se outra instância está rodando"
-    echo "   Ou mude a porta no arquivo .env"
-    exit 1
-fi
-
-echo "🚀 Iniciando aplicação..."
-echo "   Interface: http://localhost:8080"
-echo "   Pressione Ctrl+C para parar"
-echo ""
-
-# Executar aplicação
+# Iniciar aplicação
 python app.py 

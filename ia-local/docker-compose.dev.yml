@@ -8,7 +8,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - OLLAMA_HOST=http://ollama:11434
+      - OLLAMA_HOST=${OLLAMA_HOST}
       - MODEL_NAME=llama2
       - FLASK_ENV=development
       - FLASK_DEBUG=True
@@ -24,26 +24,7 @@ services:
       - ./uploads:/app/uploads
       - ./cache:/app/cache
       - ./logs:/app/logs
-    depends_on:
-      - ollama
     restart: unless-stopped
     # Configuração para desenvolvimento com reload automático
     command: python app.py
 
-  ollama:
-    image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-    restart: unless-stopped
-
-volumes:
-  ollama_data: 
