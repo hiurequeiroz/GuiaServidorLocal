@@ -144,6 +144,11 @@ NVIDIA_VISIBLE_DEVICES=all
 - **RAM**: 16GB+
 - **Armazenamento**: SSD 20GB+
 
+### 📊 Performance
+Para análise detalhada de performance CPU vs GPU, consulte **[Análise de Performance](PERFORMANCE.md)**.
+
+**Resultado**: GPU oferece **10-15x mais velocidade** que CPU apenas.
+
 ## 🐛 Solução de Problemas
 
 Para problemas específicos e soluções detalhadas, consulte o **[Guia de Troubleshooting](TROUBLESHOOTING.md)**.
