@@ -76,12 +76,37 @@ compose/
   ```
 - **Aprendizado**: Flask avançado, SQLite, autenticação, interface responsiva
 
+### 4. **ia-local/** - Chatbot de IA Local 🤖
+```
+ia-local/
+├── app.py              # Servidor Flask principal
+├── docker-compose.yml  # Configuração Docker
+├── start.sh           # Script de inicialização
+└── README.md          # Documentação detalhada
+```
+- **O que é**: Um chatbot de IA que roda localmente na rede comunitária
+- **Funcionalidades**:
+  - Interface web moderna e responsiva
+  - Múltiplos modelos de IA (LLaMA 2, Mistral, etc.)
+  - Aceleração por GPU (RTX 4060)
+  - Histórico de conversas
+  - Download de modelos via interface
+- **Como usar**:
+  ```bash
+  cd ia-local
+  chmod +x start.sh
+  ./start.sh
+  ```
+- **Acesso**: `http://IP_DO_COMPUTADOR:8080`
+- **Aprendizado**: IA local, Docker, GPU computing, modelos de linguagem
+
 ## 🚀 Como Usar na Rede Comunitária
 
 ### Pré-requisitos
 - Computador com Python 3.8+
 - Conexão na rede WiFi mesh
 - Conhecimento básico de terminal
+- **Para IA Local**: Docker, GPU NVIDIA (opcional)
 
 ### Passo a Passo
 
@@ -89,6 +114,7 @@ compose/
    - **Iniciantes**: Comece com `olamundo/`
    - **Intermediários**: Use `web/instaSimples.py`
    - **Avançados**: Use `compose/`
+   - **IA Local**: Use `ia-local/` (requer Docker)
 
 2. **Execute o servidor**:
    ```bash
@@ -103,6 +129,10 @@ compose/
    # Para compose
    cd compose
    ./run.sh
+   
+   # Para IA Local
+   cd ia-local
+   ./start.sh
    ```
 
 3. **Acesse de outros dispositivos**:
@@ -114,6 +144,7 @@ compose/
    - Faça upload de fotos
    - Escreva comentários
    - Veja o que outros postaram
+   - **Para IA**: Converse com o chatbot local
    - Tudo funciona localmente na rede
 
 ## 🎓 Aplicação Educacional
@@ -122,19 +153,22 @@ compose/
 - **Aula 1**: Conceitos básicos de rede (usando `olamundo/`)
 - **Aula 2**: Introdução ao Flask (usando `web/instaSimples.py`)
 - **Aula 3**: Desenvolvimento web completo (usando `compose/`)
-- **Aula 4**: Manutenção e troubleshooting
+- **Aula 4**: Inteligência Artificial local (usando `ia-local/`)
+- **Aula 5**: Manutenção e troubleshooting
 
 ### Para Alunos
 - **Módulo 1**: "O que é a internet?" - usando servidores simples
 - **Módulo 2**: "Como criar uma página web?" - aprendendo HTML e Flask
 - **Módulo 3**: "Como fazer uma rede social?" - desenvolvimento completo
-- **Módulo 4**: "Como manter uma rede comunitária?" - administração e manutenção
+- **Módulo 4**: "Como funciona IA local?" - modelos de linguagem e GPU
+- **Módulo 5**: "Como manter uma rede comunitária?" - administração e manutenção
 
 ### Conceitos Aprendidos
 - **Redes**: IP local, portas, servidores
 - **Web**: HTML, CSS, JavaScript
 - **Backend**: Python, Flask, banco de dados
 - **Sistemas**: Upload de arquivos, autenticação
+- **IA**: Modelos de linguagem, GPU computing, Docker
 - **Colaboração**: Trabalho em equipe, compartilhamento
 
 ## 🌍 Impacto Comunitário
@@ -142,6 +176,7 @@ compose/
 ### Benefícios para a Comunidade
 - **Empoderamento tecnológico**: Jovens aprendem a criar e manter sistemas
 - **Conectividade local**: Rede social própria da comunidade
+- **Acesso à IA**: Chatbot local sem dependência externa
 - **Economia de dados**: Funciona sem internet externa
 - **Preservação cultural**: Conteúdo local e relevante
 - **Formação de mão de obra**: Desenvolvedores locais para a rede
@@ -149,6 +184,7 @@ compose/
 ### Futuro da Rede Comunitária
 - **Manutenção**: Jovens treinados podem manter os sistemas
 - **Expansão**: Novos serviços podem ser adicionados
+- **IA Local**: Democratização do acesso à inteligência artificial
 - **Sustentabilidade**: Rede gerida pela própria comunidade
 - **Inovação**: Base para novos projetos tecnológicos
 
@@ -159,9 +195,14 @@ compose/
 - **Python**: Versão 3.8 ou superior
 - **Memória**: Mínimo 2GB RAM
 - **Armazenamento**: 1GB livre para uploads
+- **Para IA Local**: 
+  - Docker e Docker Compose
+  - GPU NVIDIA (recomendado)
+  - 16GB RAM (recomendado)
+  - 50GB armazenamento livre
 
 ### Configuração de Rede
-- **Porta padrão**: 8000 (olamundo/web) ou 5000 (compose)
+- **Porta padrão**: 8000 (olamundo/web), 5000 (compose), 8080 (ia-local)
 - **Acesso**: Qualquer dispositivo na rede local
 - **Segurança**: Apenas para uso em redes confiáveis
 
@@ -185,6 +226,12 @@ compose/
 3. Adicione novas features
 4. Otimize para performance
 
+### Para IA Local
+1. Use `ia-local/` (chatbot de IA)
+2. Aprenda sobre Docker e containers
+3. Experimente diferentes modelos de IA
+4. Otimize para GPU
+
 ## 🤝 Contribuição e Desenvolvimento
 
 ### Como Contribuir
@@ -201,6 +248,9 @@ compose/
 - Fórum de discussão
 - Sistema de eventos
 - Mapa colaborativo da comunidade
+- **IA Avançada**: Modelos específicos para educação
+- **Multimídia**: Processamento de vídeo local
+- **IoT**: Integração com sensores da comunidade
 
 ## 📞 Suporte e Comunidade
 
@@ -208,6 +258,8 @@ compose/
 - [Documentação Flask](https://flask.palletsprojects.com/)
 - [Tutorial Python](https://docs.python.org/3/tutorial/)
 - [HTML/CSS Básico](https://developer.mozilla.org/pt-BR/docs/Web/HTML)
+- [Docker Tutorial](https://docs.docker.com/get-started/)
+- [Ollama Documentation](https://ollama.ai/docs)
 
 ### Comunidade
 - **Grupo de Estudos**: Forme grupos para estudar juntos
@@ -222,6 +274,7 @@ Este projeto demonstra que **tecnologia pode ser democrática e educacional**. U
 Ao ensinar jovens a criar e manter sistemas web locais, estamos:
 - **Formando** a próxima geração de desenvolvedores
 - **Fortalecendo** a comunidade tecnologicamente
+- **Democratizando** o acesso à IA
 - **Criando** uma base para inovação local
 - **Democratizando** o acesso ao conhecimento técnico
 
