@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🤖 Chatbot de IA Local - Rede Comunitária</title>
+    <title>🤖 Chatbot de IA Local - Portal Sem Porteiras</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
@@ -11,8 +11,14 @@
     <div class="container">
         <!-- Header -->
         <header class="header">
-            <h1><i class="fas fa-robot"></i> Chatbot de IA Local</h1>
-            <p>Rede Comunitária - Inteligência Artificial Local</p>
+            <div class="logo-container">
+                <img src="{{ url_for('static', filename='image/logopsp.jpg') }}" alt="Portal Sem Porteiras" class="logo">
+            </div>
+            <div class="header-text">
+                <h1><i class="fas fa-robot"></i> Chatbot de IA Local</h1>
+                <p>Rede Comunitária Portal Sem Porteiras</p>
+                <p class="subtitle">Inteligência Artificial Local</p>
+            </div>
         </header>
 
         <!-- Status Bar -->
@@ -34,8 +40,8 @@
                 <div class="message system">
                     <div class="message-content">
                         <i class="fas fa-info-circle"></i>
-                        <p>Bem-vindo ao Chatbot de IA Local da Rede Comunitária! 🤖</p>
-                        <p>Este é um assistente de IA que roda localmente na sua rede, sem precisar de internet externa.</p>
+                        <p>Bem-vindo ao Chatbot de IA Local da <strong>Rede Comunitária Portal Sem Porteiras</strong>! 🤖</p>
+                        <p>Este é um assistente de IA que roda localmente na nossa rede comunitária, sem precisar de internet externa.</p>
                         <p>Digite sua mensagem abaixo e comece a conversar!</p>
                     </div>
                 </div>
