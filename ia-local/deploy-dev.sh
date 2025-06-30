@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Script de Deploy para PRODUÇÃO - Chatbot IA Local
+# Script de Deploy para DESENVOLVIMENTO - Chatbot IA Local
 # Portal Sem Porteiras - Rede Comunitária
 # Usa servidor Ollama remoto configurado via variável de ambiente
 
 set -e
 
-echo "🏭 Deploy de PRODUÇÃO - Chatbot IA Local"
+echo "🔧 Deploy de DESENVOLVIMENTO - Chatbot IA Local"
 echo "🌐 Portal Sem Porteiras - Rede Comunitária"
 echo ""
 
@@ -58,18 +58,56 @@ else
     echo "   Continuando deploy da aplicação web..."
 fi
 
-# Parar containers existentes
-echo "🛑 Parando containers existentes..."
-docker-compose down 2>/dev/null || true
+# Verificar se há mudanças no código
+echo "🔍 Verificando mudanças no código..."
 
-# Rebuild da imagem para produção
-echo "🔨 Rebuild da imagem Docker para produção..."
-docker-compose build --no-cache
+# Lista de arquivos para monitorar
+FILES_TO_WATCH=(
+    "app.py"
+    "pdf_processor.py"
+    "templates/"
+    "static/"
+    "requirements.txt"
+    "Dockerfile"
+    "Dockerfile.dev"
+    "docker-compose.yml"
+    "docker-compose.dev.yml"
+)
 
-# Iniciar containers
+# Verificar se há mudanças
+HAS_CHANGES=false
+for file in "${FILES_TO_WATCH[@]}"; do
+    if [ -f "$file" ] || [ -d "$file" ]; then
+        if [ "$file" -nt ".last_deploy" ] 2>/dev/null; then
+            echo "📝 Mudanças detectadas em: $file"
+            HAS_CHANGES=true
+        fi
+    fi
+done
+
+if [ "$HAS_CHANGES" = true ]; then
+    echo "🔄 Mudanças detectadas - Rebuild necessário"
+    echo ""
+    
+    # Parar containers existentes
+    echo "🛑 Parando containers existentes..."
+    docker-compose -f docker-compose.dev.yml down 2>/dev/null || true
+    
+    # Rebuild da imagem
+    echo "🔨 Rebuild da imagem Docker para desenvolvimento..."
+    docker-compose -f docker-compose.dev.yml build --no-cache
+    
+    # Atualizar timestamp
+    touch .last_deploy
+    echo "✅ Timestamp de deploy atualizado"
+else
+    echo "✅ Nenhuma mudança detectada - Iniciando containers existentes"
+fi
+
+# Iniciar containers de desenvolvimento
 echo ""
-echo "🚀 Iniciando containers de produção..."
-docker-compose up -d
+echo "🚀 Iniciando containers de desenvolvimento..."
+docker-compose -f docker-compose.dev.yml up -d
 
 # Aguardar inicialização
 echo "⏳ Aguardando inicialização..."
@@ -78,34 +116,22 @@ sleep 5
 # Verificar status
 echo ""
 echo "📊 Status dos containers:"
-docker-compose ps
+docker-compose -f docker-compose.dev.yml ps
 
 # Verificar logs
 echo ""
 echo "📋 Últimos logs do chatbot:"
-docker-compose logs --tail=10 chatbot
+docker-compose -f docker-compose.dev.yml logs --tail=10 chatbot
 
 echo ""
-echo "🎉 Deploy de PRODUÇÃO concluído!"
+echo "🎉 Deploy de DESENVOLVIMENTO concluído!"
 echo "🌐 Acesse: http://localhost:8080"
 echo "🔗 Servidor Ollama: $OLLAMA_HOST"
+echo "📝 Volumes montados para desenvolvimento (código atualizado sem rebuild)"
 echo ""
 echo "📝 Comandos úteis:"
-echo "   docker-compose logs -f chatbot    # Ver logs em tempo real"
-echo "   docker-compose down               # Parar containers"
-echo "   docker-compose restart chatbot    # Reiniciar apenas o chatbot"
+echo "   docker-compose -f docker-compose.dev.yml logs -f chatbot    # Ver logs em tempo real"
+echo "   docker-compose -f docker-compose.dev.yml down               # Parar containers"
+echo "   docker-compose -f docker-compose.dev.yml restart chatbot    # Reiniciar apenas o chatbot"
 echo ""
-echo "💡 Para desenvolvimento, use: ./deploy-dev.sh"
-
-# Mostrar informações úteis
-echo ""
-echo "🔧 Comandos úteis:"
-echo "   - Ver logs: docker-compose -f $COMPOSE_FILE logs -f"
-echo "   - Parar: docker-compose -f $COMPOSE_FILE down"
-echo "   - Restart: docker-compose -f $COMPOSE_FILE restart"
-echo "   - Status: docker-compose -f $COMPOSE_FILE ps"
-echo ""
-echo "📚 Documentação:"
-echo "   - README.md: Documentação geral"
-echo "   - DEVELOPMENT.md: Guia de desenvolvimento"
-echo "   - PDF_FEATURE.md: Funcionalidade de PDF" 
+echo "💡 Para produção, use: ./deploy.sh" 
