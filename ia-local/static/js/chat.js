@@ -61,8 +61,12 @@ class ChatbotUI {
 
         // Auto-resize do textarea
         this.messageInput.addEventListener('input', () => {
-            this.messageInput.style.height = 'auto';
-            this.messageInput.style.height = this.messageInput.scrollHeight + 'px';
+            this.autoResizeTextarea();
+        });
+
+        // Focus no textarea ao carregar
+        this.messageInput.addEventListener('focus', () => {
+            this.autoResizeTextarea();
         });
 
         // PDF upload
@@ -359,7 +363,7 @@ class ChatbotUI {
         // Adicionar mensagem do usuário
         this.addMessage(message, 'user');
         this.messageInput.value = '';
-        this.messageInput.style.height = 'auto';
+        this.autoResizeTextarea();
         
         // Mostrar loading
         this.showLoading();
@@ -398,19 +402,34 @@ class ChatbotUI {
         const contentDiv = document.createElement('div');
         contentDiv.className = 'message-content';
         
+        let headerIcon, headerText;
+        
         if (type === 'ai') {
-            contentDiv.innerHTML = `<i class="fas fa-robot"></i> ${this.formatMessage(content)}`;
+            headerIcon = 'fas fa-robot';
+            headerText = 'Assistente IA';
         } else if (type === 'user') {
-            contentDiv.innerHTML = `<i class="fas fa-user"></i> ${this.formatMessage(content)}`;
+            headerIcon = 'fas fa-user';
+            headerText = 'Você';
         } else {
-            contentDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${this.formatMessage(content)}`;
+            headerIcon = 'fas fa-info-circle';
+            headerText = 'Sistema';
         }
+        
+        contentDiv.innerHTML = `
+            <div class="message-header">
+                <i class="${headerIcon}"></i>
+                <span>${headerText}</span>
+            </div>
+            <div class="message-body">
+                ${this.formatMessage(content)}
+            </div>
+        `;
         
         messageDiv.appendChild(contentDiv);
         this.chatMessages.appendChild(messageDiv);
         
-        // Scroll para a última mensagem
-        this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+        // Scroll para a última mensagem com animação suave
+        this.scrollToBottom();
     }
 
     formatMessage(message) {
@@ -498,6 +517,15 @@ class ChatbotUI {
 
     hideLoading() {
         this.loadingOverlay.classList.add('hidden');
+    }
+
+    autoResizeTextarea() {
+        this.messageInput.style.height = 'auto';
+        this.messageInput.style.height = this.messageInput.scrollHeight + 'px';
+    }
+
+    scrollToBottom() {
+        this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
     }
 }
 
