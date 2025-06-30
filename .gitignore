@@ -1,0 +1,25 @@
+# Ambiente virtual
+venv/
+env/
+
+# Cache Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Arquivos de mídia/uploads
+uploads/
+media/
+**/uploads/
+**/media/
+app/static/uploads/
+
+# Banco de dados e migrations
+instance/
+*.db
+*.sqlite3
+migrations/__pycache__/
+
+# Outros
+.env
+*.log 

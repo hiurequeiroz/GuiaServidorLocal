@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Upload{% endblock %}
+
+{% block content %}
+<div class="upload-container">
+    <div class="tabs">
+        <button class="tab-button active" data-tab="photo">Foto</button>
+        <button class="tab-button" data-tab="pdf">PDF</button>
+    </div>
+    
+    <div class="tab-content active" id="photo-content">
+        <!-- Área de seleção de foto -->
+        <div class="photo-select">
+            <input type="file" id="photoInput" accept="image/*" class="photo-input">
+            <label for="photoInput" class="select-photo-btn">
+                <i class="fas fa-camera"></i>
+                <span>Selecionar foto</span>
+            </label>
+        </div>
+
+        <!-- Preview da foto -->
+        <div class="preview-container">
+            <div class="empty-preview">
+                <i class="fas fa-image"></i>
+                <p>Nenhuma foto selecionada</p>
+            </div>
+            <img id="imagePreview" src="" style="display: none;">
+        </div>
+
+        <!-- Filtros -->
+        <div class="filters-section">
+            <h3>Escolha um filtro</h3>
+            <div class="filters-grid">
+                <div class="filter-option selected" data-filter="normal">
+                    <img src="{{ url_for('static', filename='images/psp.png') }}" class="filter-preview">
+                    <span>Normal</span>
+                </div>
+                <div class="filter-option" data-filter="grayscale">
+                    <img src="{{ url_for('static', filename='images/psp.png') }}" class="filter-preview" style="filter: grayscale(100%)">
+                    <span>P&B</span>
+                </div>
+                <div class="filter-option" data-filter="sepia">
+                    <img src="{{ url_for('static', filename='images/psp.png') }}" class="filter-preview" style="filter: sepia(100%)">
+                    <span>Sépia</span>
+                </div>
+                <div class="filter-option" data-filter="contrast">
+                    <img src="{{ url_for('static', filename='images/psp.png') }}" class="filter-preview" style="filter: contrast(150%)">
+                    <span>Contraste</span>
+                </div>
+                <div class="filter-option" data-filter="brightness">
+                    <img src="{{ url_for('static', filename='images/psp.png') }}" class="filter-preview" style="filter: brightness(130%)">
+                    <span>Brilho</span>
+                </div>
+                <div class="filter-option" data-filter="blur">
+                    <img src="{{ url_for('static', filename='images/psp.png') }}" class="filter-preview" style="filter: blur(2px)">
+                    <span>Desfoque</span>
+                </div>
+                <div class="filter-option" data-filter="saturate">
+                    <img src="{{ url_for('static', filename='images/psp.png') }}" class="filter-preview" style="filter: saturate(200%)">
+                    <span>Saturação</span>
+                </div>
+                <div class="filter-option" data-filter="hue-rotate">
+                    <img src="{{ url_for('static', filename='images/psp.png') }}" class="filter-preview" style="filter: hue-rotate(90deg)">
+                    <span>Matiz</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Formulário de upload -->
+        <form id="uploadForm">
+            <input type="hidden" id="selectedFilter" name="filter" value="normal">
+            <textarea name="caption" placeholder="Adicione uma legenda..." class="caption-input"></textarea>
+            <button type="submit" class="upload-button">Postar</button>
+        </form>
+    </div>
+    
+    <div class="tab-content" id="pdf-content" style="display: none;">
+        <div class="pdf-upload-area">
+            <form action="{{ url_for('posts.upload_pdf') }}" method="post" enctype="multipart/form-data">
+                <!-- Área de seleção do PDF -->
+                <div class="file-select">
+                    <input type="file" id="pdfInput" name="file" accept=".pdf" class="pdf-input" required>
+                    <label for="pdfInput" class="select-pdf-btn">
+                        <i class="fas fa-file-pdf"></i>
+                        <span>Selecionar PDF</span>
+                    </label>
+                </div>
+                
+                <!-- Informações do PDF -->
+                <div class="pdf-info">
+                    <div class="form-group">
+                        <label for="title">Título do documento</label>
+                        <input type="text" id="title" name="title" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="description">Descrição</label>
+                        <textarea id="description" name="description" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+                
+                <button type="submit" class="upload-button">
+                    <i class="fas fa-upload"></i>
+                    Enviar PDF
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/preview.js') }}"></script>
+{% endblock %} 
