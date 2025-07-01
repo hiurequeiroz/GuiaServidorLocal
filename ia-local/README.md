@@ -2,6 +2,8 @@
 
 Um chatbot de inteligência artificial que roda localmente na rede comunitária, sem necessidade de internet externa. Desenvolvido para a **Rede Comunitária Portal Sem Porteiras**.
 
+![Interface do Chatbot IA Local](printpage.png)
+
 ## 🌐 Configuração de Rede
 
 Este projeto utiliza a variável de ambiente **OLLAMA_HOST** para definir o endereço do servidor Ollama:
